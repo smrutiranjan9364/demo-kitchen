@@ -68,17 +68,17 @@ export default function HeroCarousel() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent" />
 
             {/* Content — constrained to page width, aligned with the rest of the site */}
-            <div className="relative mx-auto flex h-full max-w-7xl items-center px-6 sm:px-12">
+            <div className="relative mx-auto flex h-full max-w-7xl items-center px-5 sm:px-12">
               <div className="flex max-w-md flex-col justify-center">
-                <h1 className="font-serif text-3xl leading-tight text-cream sm:text-5xl">
+                <h1 className="font-serif text-2xl leading-tight text-cream sm:text-5xl">
                   {slide.title}
                 </h1>
-                <p className="mt-3 max-w-sm text-sm text-cream/85 sm:text-base">
+                <p className="mt-2 max-w-sm text-sm text-cream/85 sm:mt-3 sm:text-base">
                   {slide.text}
                 </p>
                 <Link
                   href={slide.href}
-                  className="mt-6 w-fit bg-brand px-5 py-2.5 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light"
+                  className="mt-5 w-fit bg-brand px-5 py-2.5 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light sm:mt-6"
                 >
                   {slide.cta}
                 </Link>
@@ -92,14 +92,14 @@ export default function HeroCarousel() {
       <button
         onClick={prev}
         aria-label="Previous slide"
-        className="absolute left-6 top-1/2 -translate-y-1/2 rounded bg-cream/85 px-3 py-4 text-lg text-brand shadow transition hover:bg-cream sm:left-9"
+        className="absolute bottom-3 right-14 z-10 rounded bg-cream/85 px-2.5 py-1.5 text-lg leading-none text-brand shadow transition hover:bg-cream sm:bottom-auto sm:right-auto sm:left-9 sm:top-1/2 sm:-translate-y-1/2 sm:px-3 sm:py-4"
       >
         ‹
       </button>
       <button
         onClick={next}
         aria-label="Next slide"
-        className="absolute right-6 top-1/2 -translate-y-1/2 rounded bg-cream/85 px-3 py-4 text-lg text-brand shadow transition hover:bg-cream sm:right-9"
+        className="absolute bottom-3 right-3 z-10 rounded bg-cream/85 px-2.5 py-1.5 text-lg leading-none text-brand shadow transition hover:bg-cream sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 sm:right-9 sm:px-3 sm:py-4"
       >
         ›
       </button>

@@ -137,3 +137,57 @@ export const ALL_PRODUCTS: Product[] = Object.entries(CATALOG).flatMap(
 export function getProductsByCategory(slug: string): Product[] {
   return ALL_PRODUCTS.filter((p) => p.category === slug);
 }
+
+// Every product across the site, de-duplicated by id.
+export const CATALOG_PRODUCTS: Product[] = (() => {
+  const map = new Map<string, Product>();
+  for (const p of [...ALL_PRODUCTS, ...BEST_SELLERS, ...TOP_DEALS]) {
+    if (!map.has(p.id)) map.set(p.id, p);
+  }
+  return Array.from(map.values());
+})();
+
+export function getProductById(id: string): Product | undefined {
+  return CATALOG_PRODUCTS.find((p) => p.id === id);
+}
+
+export function relatedProducts(product: Product, limit = 4): Product[] {
+  return CATALOG_PRODUCTS.filter(
+    (p) => p.id !== product.id && p.category && p.category === product.category,
+  ).slice(0, limit);
+}
+
+// A generic, human-sounding description used on detail pages.
+export function productDescription(p: Product): string {
+  return `${p.name} from Rosy's Kitchen — prepared the traditional Odia way, in small batches, using time-honoured recipes and honest ingredients. Freshly made and carefully packed so it reaches you tasting just like home.`;
+}
+
+export type Review = {
+  name: string;
+  rating: number;
+  date: string;
+  comment: string;
+};
+
+// Sample reviews shown on every product detail page (demo content).
+export const SAMPLE_REVIEWS: Review[] = [
+  {
+    name: "Ananya M.",
+    rating: 5,
+    date: "2 weeks ago",
+    comment:
+      "Absolutely authentic! Tasted exactly like what my grandmother makes. Packaging was neat and delivery was quick.",
+  },
+  {
+    name: "Rakesh S.",
+    rating: 5,
+    date: "1 month ago",
+    comment: "Fresh and flavourful. Will definitely order again for the festival season.",
+  },
+  {
+    name: "Priya D.",
+    rating: 4,
+    date: "1 month ago",
+    comment: "Really good quality and taste. Would love a slightly bigger pack option.",
+  },
+];

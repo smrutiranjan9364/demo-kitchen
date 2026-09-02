@@ -1,12 +1,14 @@
 import Image from "next/image";
+import Link from "next/link";
 import type { Product } from "@/data/products";
 import AddToCartButton from "./AddToCartButton";
 
 export default function ProductCard({ product }: { product: Product }) {
+  const href = `/product/${product.id}`;
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-black/5 bg-white shadow-sm transition hover:shadow-md">
       {/* Image */}
-      <div className="relative aspect-square bg-cream-soft">
+      <Link href={href} className="relative block aspect-square bg-cream-soft">
         {product.discount ? (
           <span className="absolute left-2 top-2 z-10 rounded bg-brand px-2 py-0.5 text-[10px] font-bold text-cream">
             {product.discount}% OFF
@@ -25,11 +27,13 @@ export default function ProductCard({ product }: { product: Product }) {
             <ImagePlaceholder />
           </div>
         )}
-      </div>
+      </Link>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-3">
-        <h3 className="text-sm font-medium text-gray-800">{product.name}</h3>
+        <Link href={href} className="text-sm font-medium text-gray-800 hover:text-brand">
+          {product.name}
+        </Link>
 
         <div className="flex items-center gap-1.5 text-xs">
           <span className="flex items-center gap-1 rounded bg-rating px-1.5 py-0.5 font-semibold text-white">

@@ -19,10 +19,15 @@
   color-scheme: light;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   background: #ffffff;
   color: #2b2b2b;
   font-family: var(--font-sans);
+  overflow-x: hidden;
 }
 
 /* Marquee (infinite horizontal scroll) */

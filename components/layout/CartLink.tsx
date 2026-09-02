@@ -16,7 +16,7 @@ export default function CartLink() {
           </span>
         ) : null}
       </span>
-      <span>Cart</span>
+      <span className="hidden sm:inline">Cart</span>
     </Link>
   );
 }

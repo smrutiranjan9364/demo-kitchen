@@ -2,22 +2,27 @@ import Link from "next/link";
 import { NAV_CATEGORIES, CONTACT } from "@/data/site";
 import CartLink from "./CartLink";
 import MoreMenu from "./MoreMenu";
+import MobileNav from "./MobileNav";
+import LoginButton from "@/components/auth/LoginButton";
 
 export default function Header() {
   return (
     <header className="sticky top-0 z-50">
       {/* Top bar */}
       <div className="bg-brand text-cream">
-        <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6">
+          {/* Hamburger (mobile) */}
+          <MobileNav />
+
           <Link
             href="/"
-            className="font-serif text-xl italic tracking-wide whitespace-nowrap"
+            className="font-serif text-lg italic tracking-wide whitespace-nowrap sm:text-xl"
           >
             <span className="text-[#f06aa8]">Rosy&apos;s</span>{" "}
             <span className="text-cream">Kitchen</span>
           </Link>
 
-          {/* Search */}
+          {/* Search (desktop) */}
           <div className="mx-auto hidden w-full max-w-xl md:block">
             <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-700">
               <SearchIcon className="h-4 w-4 text-gray-400" />
@@ -30,26 +35,51 @@ export default function Header() {
           </div>
 
           {/* Actions */}
-          <div className="ml-auto flex items-center gap-5 text-sm">
+          <div className="ml-auto flex items-center gap-3 text-sm sm:gap-5">
+            {/* Social icons */}
+            <div className="hidden items-center gap-3 lg:flex">
+              <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram" className="hover:opacity-80">
+                <InstagramIcon className="h-6 w-6" />
+              </a>
+              <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="hover:opacity-80">
+                <FacebookIcon className="h-6 w-6" />
+              </a>
+              <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube" className="hover:opacity-80">
+                <YoutubeIcon className="h-6 w-6" />
+              </a>
+              <span className="h-4 w-px bg-cream/30" />
+            </div>
+
             <a
               href={`tel:${CONTACT.phone}`}
-              className="hidden items-center gap-1.5 hover:opacity-80 lg:flex"
+              className="hidden items-center gap-1.5 hover:opacity-80 xl:flex"
             >
               <PhoneIcon className="h-4 w-4" />
               <span className="whitespace-nowrap">{CONTACT.phone}</span>
             </a>
-            <Link href="/login" className="flex items-center gap-1.5 hover:opacity-80">
-              <UserIcon className="h-4 w-4" />
-              <span>Login</span>
-            </Link>
+
+            {/* Login: label hides on very small screens, icon stays */}
+            <LoginButton />
             <CartLink />
+          </div>
+        </div>
+
+        {/* Search (mobile) */}
+        <div className="px-4 pb-3 md:hidden">
+          <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-700">
+            <SearchIcon className="h-4 w-4 text-gray-400" />
+            <input
+              type="search"
+              placeholder="Search snacks, sweets, spices..."
+              className="w-full bg-transparent outline-none placeholder:text-gray-400"
+            />
           </div>
         </div>
       </div>
 
-      {/* Category nav */}
-      <nav className="border-b border-brand/10 bg-cream-soft">
-        <div className="mx-auto flex max-w-7xl items-center justify-center gap-6 px-4 py-2.5 text-xs font-semibold tracking-wide text-brand sm:px-6">
+      {/* Category nav (desktop) */}
+      <nav className="hidden border-b border-brand/10 bg-cream-soft md:block">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-1 px-4 py-2.5 text-xs font-semibold tracking-wide text-brand sm:px-6">
           {NAV_CATEGORIES.map((item) => (
             <Link
               key={item.label}
@@ -88,11 +118,43 @@ function PhoneIcon({ className }: { className?: string }) {
   );
 }
 
-function UserIcon({ className }: { className?: string }) {
+function InstagramIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" strokeLinecap="round" />
+    <svg className={className} viewBox="0 0 24 24">
+      <defs>
+        <linearGradient id="ig-grad" x1="0" y1="1" x2="1" y2="0">
+          <stop offset="0" stopColor="#feda75" />
+          <stop offset="0.35" stopColor="#fa7e1e" />
+          <stop offset="0.6" stopColor="#d62976" />
+          <stop offset="0.8" stopColor="#962fbf" />
+          <stop offset="1" stopColor="#4f5bd5" />
+        </linearGradient>
+      </defs>
+      <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#ig-grad)" />
+      <rect x="6" y="6" width="12" height="12" rx="4" fill="none" stroke="#fff" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="#fff" strokeWidth="1.8" />
+      <circle cx="17" cy="7" r="1.1" fill="#fff" />
+    </svg>
+  );
+}
+
+function FacebookIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="#1877F2" />
+      <path
+        fill="#fff"
+        d="M15.3 12.5l.4-2.6h-2.5V8.2c0-.7.4-1.4 1.5-1.4h1.1V4.5s-1-.2-2-.2c-2 0-3.3 1.2-3.3 3.5v2H8.2v2.6H10V19h2.7v-6.5h2.6Z"
+      />
+    </svg>
+  );
+}
+
+function YoutubeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <rect x="1" y="4.5" width="22" height="15" rx="4.5" fill="#FF0000" />
+      <path fill="#fff" d="M10 8.5v7l6-3.5-6-3.5Z" />
     </svg>
   );
 }
