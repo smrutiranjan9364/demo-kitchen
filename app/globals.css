@@ -20,14 +20,16 @@
 }
 
 html {
-  overflow-x: hidden;
+  /* clip (not hidden) prevents horizontal scroll without creating a
+     scroll container, which would break the sticky header. */
+  overflow-x: clip;
 }
 
 body {
   background: #ffffff;
   color: #2b2b2b;
   font-family: var(--font-sans);
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* Marquee (infinite horizontal scroll) */

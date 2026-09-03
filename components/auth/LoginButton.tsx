@@ -67,8 +67,8 @@ export default function LoginButton() {
             </h2>
             <p className="mt-1 text-sm text-gray-500">
               {mode === "login"
-                ? "Log in to your Rosy's Kitchen account."
-                : "Join Rosy's Kitchen to start ordering."}
+                ? "Log in to your Odia Kitchen account."
+                : "Join Odia Kitchen to start ordering."}
             </p>
 
             {notice ? (
@@ -110,7 +110,7 @@ export default function LoginButton() {
               {mode === "register" ? (
                 <>
                   <Field label="Full name" name="name" type="text" placeholder="Rosy Sahoo" />
-                  <Field label="Phone" name="phone" type="tel" placeholder="9437141055" />
+                  <Field label="Phone" name="phone" type="tel" placeholder="6370649364" />
                 </>
               ) : null}
               <Field label="Email" name="email" type="email" placeholder="you@example.com" />

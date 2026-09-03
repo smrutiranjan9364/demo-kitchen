@@ -71,7 +71,7 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-cream/15">
         <div className="mx-auto max-w-7xl px-6 py-6 text-center text-xs text-cream/70">
-          <p>© 2024 Rosy&apos;s Kitchen. All rights reserved. Crafted with heritage.</p>
+          <p>© 2024 Odia Kitchen. All rights reserved. Crafted with heritage.</p>
           <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
             {FOOTER_LEGAL.map((item) => (
               <Link key={item.label} href={item.href} className="hover:text-white">

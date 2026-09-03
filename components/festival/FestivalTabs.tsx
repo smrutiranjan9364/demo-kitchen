@@ -17,7 +17,7 @@ const FESTIVAL_NOTES: Record<string, string> = {
   "chhena-poda": "A caramelised cheese dessert, slow-baked to a smoky, golden finish.",
   "arisa-pitha": "Sweet rice-flour cakes fried in ghee — a Sankranti favourite.",
   rasabali: "Soft fried chhena discs soaked in thickened, cardamom-spiced milk.",
-  "manda-pitha": "Steamed rice dumplings filled with coconut and jaggery.",
+  "enduri-pitha": "Rice-and-lentil cakes steamed in fragrant turmeric leaves — the Prathamastami classic.",
 };
 
 // Which festival is nearest upcoming from today (wraps to next year if passed).

@@ -18,7 +18,7 @@ export default function Header() {
             href="/"
             className="font-serif text-lg italic tracking-wide whitespace-nowrap sm:text-xl"
           >
-            <span className="text-[#f06aa8]">Rosy&apos;s</span>{" "}
+            <span className="text-[#f06aa8]">Odia</span>{" "}
             <span className="text-cream">Kitchen</span>
           </Link>
 
@@ -79,17 +79,24 @@ export default function Header() {
 
       {/* Category nav (desktop) */}
       <nav className="hidden border-b border-brand/10 bg-cream-soft md:block">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-5 gap-y-1 px-4 py-2.5 text-xs font-semibold tracking-wide text-brand sm:px-6">
-          {NAV_CATEGORIES.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="flex items-center gap-1.5 whitespace-nowrap hover:text-brand-light"
-            >
-              {item.icon === "grid" && <GridIcon className="h-3.5 w-3.5" />}
-              {item.label}
-            </Link>
-          ))}
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-1.5 px-4 py-2 sm:px-6">
+          {NAV_CATEGORIES.map((item) => {
+            const isPrimary = item.icon === "grid";
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={
+                  isPrimary
+                    ? "flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand px-4 py-2 text-[13px] font-semibold tracking-wide text-cream shadow-sm transition hover:bg-brand-dark"
+                    : "flex items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide text-brand/90 transition hover:bg-white hover:text-brand hover:shadow-sm"
+                }
+              >
+                {isPrimary && <GridIcon className="h-3.5 w-3.5" />}
+                {item.label}
+              </Link>
+            );
+          })}
           <MoreMenu />
         </div>
       </nav>

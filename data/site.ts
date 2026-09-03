@@ -3,9 +3,7 @@ export const NAV_CATEGORIES = [
   { label: "SNACKS", href: "/category/snacks" },
   { label: "SWEETS", href: "/category/sweets" },
   { label: "SPICES", href: "/category/spices" },
-  { label: "MEALS", href: "/category/meals" },
-  { label: "BRAND COLLABORATIONS", href: "/collaborations" },
-  { label: "ODIA COURSES", href: "/courses" },
+  { label: "FESTIVAL", href: "/festival" },
   { label: "CONTACT", href: "/contact" },
 ];
 
@@ -32,36 +30,29 @@ export const CATEGORIES: Category[] = [
   {
     label: "Snacks",
     href: "/category/snacks",
-    image: catImg("1601050690597-df0568f70950"),
-    description: "Crispy namkeen, chuda mixes and savoury bites.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg",
+    description: "Cuttack chanachur, mudhi mixture, chuda bhaja and ganthia.",
     count: 24,
   },
   {
     label: "Sweets",
     href: "/category/sweets",
-    image: catImg("1606491956689-2ea866880c84"),
-    description: "Khaja, chhena poda and traditional festive treats.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Bhubaneswar_Odia_Meetup_2013Jan29-23.JPG/960px-Bhubaneswar_Odia_Meetup_2013Jan29-23.JPG",
+    description: "Chhena poda, pahala rasgulla, chhena jhili and puri khaja.",
     count: 18,
   },
   {
     label: "Spices",
     href: "/category/spices",
-    image: catImg("1596040033229-a9821ebd058d"),
-    description: "Heritage blends and hand-ground masalas.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Turmeric_Powder_Spelled_Out.jpg/960px-Turmeric_Powder_Spelled_Out.jpg",
+    description: "Panch phutana, Kandhamal haladi and dalma masala.",
     count: 12,
-  },
-  {
-    label: "Meals",
-    href: "/category/meals",
-    image: catImg("1585937421612-70a008356fbe"),
-    description: "Wholesome thali classics and ready-to-cook combos.",
-    count: 15,
   },
   {
     label: "Pickles & Chutneys",
     href: "/category/pickles",
     image: catImg("1600271886742-f049cd451bba"),
-    description: "Tangy achar and traditional chutneys.",
+    description: "Amba, ou khatta, tentuli and rasuna achar.",
     count: 16,
   },
   {
@@ -74,8 +65,8 @@ export const CATEGORIES: Category[] = [
   {
     label: "Pitha",
     href: "/category/pitha",
-    image: catImg("1590080875515-8a3a8dc5735e"),
-    description: "Traditional Odia rice cakes and dumplings.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/SIJHA_MANDA.jpg/960px-SIJHA_MANDA.jpg",
+    description: "Manda, arisa, kakara, enduri and poda pitha.",
     count: 11,
   },
   {
@@ -129,9 +120,7 @@ export const FOOTER_MENU = [
   { label: "SHOP", href: "/shop" },
   { label: "ORDERS", href: "/orders" },
   { label: "CART", href: "/cart" },
-  { label: "BRAND COLLABORATIONS", href: "/collaborations" },
   { label: "GALLERY", href: "/gallery" },
-  { label: "ODIA COURSES", href: "/courses" },
   { label: "CONTACT", href: "/contact" },
   { label: "COMPLAINT", href: "/complaint" },
 ];
@@ -147,8 +136,8 @@ export const FOOTER_LEGAL = [
 ];
 
 export const CONTACT = {
-  email: "rosyskitchen19@gmail.com",
-  phone: "(+91) 9437141055",
+  email: "odiakitchen@gmail.com",
+  phone: "(+91) 6370649364",
 };
 
 const unsplash = (id: string, w: number) =>

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import LegalPage from "@/components/legal/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — Rosy's Kitchen",
-  description: "How Rosy's Kitchen collects, uses and protects your personal data.",
+  title: "Privacy Policy — Odia Kitchen",
+  description: "How Odia Kitchen collects, uses and protects your personal data.",
 };
 
 export default function PrivacyPage() {

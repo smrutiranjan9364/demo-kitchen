@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import LegalPage from "@/components/legal/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Return & Refund Policy — Rosy's Kitchen",
-  description: "Our return, replacement and refund policy at Rosy's Kitchen.",
+  title: "Return & Refund Policy — Odia Kitchen",
+  description: "Our return, replacement and refund policy at Odia Kitchen.",
 };
 
 export default function ReturnsPage() {

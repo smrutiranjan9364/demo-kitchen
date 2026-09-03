@@ -4,8 +4,8 @@ import CartClient from "@/components/cart/CartClient";
 import { BEST_SELLERS } from "@/data/products";
 
 export const metadata: Metadata = {
-  title: "Cart — Rosy's Kitchen",
-  description: "Review the items in your cart at Rosy's Kitchen.",
+  title: "Cart — Odia Kitchen",
+  description: "Review the items in your cart at Odia Kitchen.",
 };
 
 // Sample items to demo the cart (replace with real cart state / store).

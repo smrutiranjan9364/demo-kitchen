@@ -4,7 +4,7 @@ import { FESTIVAL_FOODS } from "@/data/products";
 import FestivalTabs from "@/components/festival/FestivalTabs";
 
 export const metadata: Metadata = {
-  title: "Festival Menu — Rosy's Kitchen",
+  title: "Festival Menu — Odia Kitchen",
   description:
     "Handmade delicacies for Odisha's most cherished festivals, prepared fresh with tradition.",
 };

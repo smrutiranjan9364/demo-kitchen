@@ -4,8 +4,8 @@ import ProductCard from "@/components/home/ProductCard";
 import { TOP_DEALS } from "@/data/products";
 
 export const metadata: Metadata = {
-  title: "Deals — Rosy's Kitchen",
-  description: "Grab the best offers on authentic Odisha food at Rosy's Kitchen.",
+  title: "Deals — Odia Kitchen",
+  description: "Grab the best offers on authentic Odisha food at Odia Kitchen.",
 };
 
 export default function DealsPage() {

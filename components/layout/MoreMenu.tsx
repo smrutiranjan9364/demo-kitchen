@@ -33,7 +33,7 @@ export default function MoreMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-haspopup="true"
-        className="flex items-center gap-1 whitespace-nowrap font-semibold hover:text-brand-light"
+        className="flex items-center gap-1 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-semibold tracking-wide text-brand/90 transition hover:bg-white hover:text-brand hover:shadow-sm"
       >
         MORE
         <ChevronIcon className={`h-3 w-3 transition ${open ? "rotate-180" : ""}`} />

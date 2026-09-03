@@ -4,8 +4,8 @@ import { CATEGORIES } from "@/data/site";
 import CategoryGrid from "@/components/categories/CategoryGrid";
 
 export const metadata: Metadata = {
-  title: "All Categories — Rosy's Kitchen",
-  description: "Browse and search every category of authentic Odisha food at Rosy's Kitchen.",
+  title: "All Categories — Odia Kitchen",
+  description: "Browse and search every category of authentic Odisha food at Odia Kitchen.",
 };
 
 export default function CategoriesPage() {

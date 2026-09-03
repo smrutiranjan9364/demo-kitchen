@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import LegalPage from "@/components/legal/LegalPage";
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions — Rosy's Kitchen",
-  description: "The terms and conditions for using Rosy's Kitchen.",
+  title: "Terms & Conditions — Odia Kitchen",
+  description: "The terms and conditions for using Odia Kitchen.",
 };
 
 export default function TermsPage() {
@@ -11,13 +11,13 @@ export default function TermsPage() {
     <LegalPage
       title="Terms & Conditions"
       updated="1 September 2026"
-      intro="Welcome to Rosy's Kitchen. By accessing our website and placing an order, you agree to the following terms. Please read them carefully."
+      intro="Welcome to Odia Kitchen. By accessing our website and placing an order, you agree to the following terms. Please read them carefully."
       sections={[
         {
           heading: "Use of our website",
           body: [
             "You may browse and shop on our website for personal, non-commercial use. You agree not to misuse the site, attempt unauthorised access, or disrupt its normal operation.",
-            "All content, including images, text and branding, is owned by Rosy's Kitchen and may not be reproduced without written permission.",
+            "All content, including images, text and branding, is owned by Odia Kitchen and may not be reproduced without written permission.",
           ],
         },
         {
@@ -50,7 +50,7 @@ export default function TermsPage() {
         {
           heading: "Limitation of liability",
           body: [
-            "To the extent permitted by law, Rosy's Kitchen is not liable for any indirect or consequential loss arising from the use of our products or website.",
+            "To the extent permitted by law, Odia Kitchen is not liable for any indirect or consequential loss arising from the use of our products or website.",
           ],
         },
         {

@@ -4,8 +4,8 @@ import CheckoutClient from "@/components/checkout/CheckoutClient";
 import { BEST_SELLERS } from "@/data/products";
 
 export const metadata: Metadata = {
-  title: "Checkout — Rosy's Kitchen",
-  description: "Complete your order at Rosy's Kitchen.",
+  title: "Checkout — Odia Kitchen",
+  description: "Complete your order at Odia Kitchen.",
 };
 
 // Sample order (replace with real cart state / store).

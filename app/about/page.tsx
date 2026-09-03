@@ -3,9 +3,9 @@ import Link from "next/link";
 import Image from "next/image";
 
 export const metadata: Metadata = {
-  title: "About Us — Rosy's Kitchen",
+  title: "About Us — Odia Kitchen",
   description:
-    "The story behind Rosy's Kitchen — bringing authentic Odisha flavours to homes everywhere.",
+    "The story behind Odia Kitchen — bringing authentic Odisha flavours to homes everywhere.",
 };
 
 const aboutImg = (id: string) =>
@@ -42,7 +42,7 @@ export default function AboutPage() {
             Bringing Odisha&apos;s kitchen to your home
           </h1>
           <p className="mt-4 max-w-xl text-sm text-cream/85 sm:text-base">
-            Rosy&apos;s Kitchen began with a simple belief — that the authentic
+            Odia Kitchen began with a simple belief — that the authentic
             flavours of Odisha deserve to be shared, one lovingly packed box at a time.
           </p>
         </div>
@@ -54,7 +54,7 @@ export default function AboutPage() {
           <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-sm ring-1 ring-black/5">
             <Image
               src={aboutImg("1556909114-f6e7ad7d3136")}
-              alt="Home-style cooking at Rosy's Kitchen"
+              alt="Home-style cooking at Odia Kitchen"
               fill
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"

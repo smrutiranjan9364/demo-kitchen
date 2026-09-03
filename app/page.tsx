@@ -1,4 +1,3 @@
-import HeroCarousel from "@/components/home/HeroCarousel";
 import CategoryCircles from "@/components/home/CategoryCircles";
 import ProductSection from "@/components/home/ProductSection";
 import FestivalFood from "@/components/home/FestivalFood";
@@ -9,7 +8,6 @@ import { BEST_SELLERS, TOP_DEALS } from "@/data/products";
 export default function Home() {
   return (
     <div className="bg-cream-soft">
-      <HeroCarousel />
       <CategoryCircles />
       <ProductSection title="Best Sellers" products={BEST_SELLERS} viewAllHref="/shop" />
       <ProductSection title="Top Deals" products={TOP_DEALS} viewAllHref="/deals" />

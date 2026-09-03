@@ -4,8 +4,8 @@ import ContactForm from "@/components/contact/ContactForm";
 import { CONTACT } from "@/data/site";
 
 export const metadata: Metadata = {
-  title: "Contact — Rosy's Kitchen",
-  description: "Get in touch with Rosy's Kitchen — questions, orders and feedback.",
+  title: "Contact — Odia Kitchen",
+  description: "Get in touch with Odia Kitchen — questions, orders and feedback.",
 };
 
 const DETAILS = [

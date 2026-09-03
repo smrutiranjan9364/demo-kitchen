@@ -14,7 +14,7 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     title: "Authentic Odisha Flavours",
-    text: "Cultural Odisha cuisine, lovingly prepared and delivered from Rosy's Kitchen.",
+    text: "Cultural Odisha cuisine, lovingly prepared and delivered from Odia Kitchen.",
     cta: "SHOP NOW",
     href: "/shop",
     image:

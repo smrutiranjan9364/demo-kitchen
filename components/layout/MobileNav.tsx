@@ -43,7 +43,7 @@ export default function MobileNav() {
             {/* Header */}
             <div className="flex items-center justify-between bg-brand px-4 py-4 text-cream">
               <span className="font-serif text-lg italic">
-                <span className="text-[#f06aa8]">Rosy&apos;s</span> Kitchen
+                <span className="text-[#f06aa8]">Odia</span> Kitchen
               </span>
               <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-xl">
                 ✕

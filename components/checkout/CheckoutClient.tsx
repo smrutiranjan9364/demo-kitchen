@@ -30,7 +30,7 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
         </div>
         <h2 className="font-serif text-2xl text-gray-900">Order placed!</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Thank you for shopping with Rosy&apos;s Kitchen. A confirmation has been
+          Thank you for shopping with Odia Kitchen. A confirmation has been
           sent to your email. Your order total was{" "}
           <span className="font-semibold text-brand">₹{total.toFixed(2)}</span>.
         </p>
@@ -60,7 +60,7 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
           </legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Full name" name="name" placeholder="Rosy Sahoo" required />
-            <Field label="Phone" name="phone" type="tel" placeholder="9437141055" required />
+            <Field label="Phone" name="phone" type="tel" placeholder="6370649364" required />
             <div className="sm:col-span-2">
               <Field label="Email" name="email" type="email" placeholder="you@example.com" required />
             </div>

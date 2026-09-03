@@ -5,9 +5,9 @@ import { CartProvider } from "@/components/cart/CartContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Rosy's Kitchen — Authentic Odisha Flavours",
+  title: "Odia Kitchen — Authentic Odisha Flavours",
   description:
-    "Cultural Odisha cuisine, lovingly prepared and delivered from Rosy's Kitchen.",
+    "Cultural Odisha cuisine, lovingly prepared and delivered from Odia Kitchen.",
 };
 
 export default function RootLayout({
