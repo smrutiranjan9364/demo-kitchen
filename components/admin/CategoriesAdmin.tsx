@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import type { Category } from "@/data/site";
 import SlideOver from "./SlideOver";
+import { useAdminUI } from "./AdminUI";
 
 // Derive the slug from a category's href (/category/<slug>).
 const slugOf = (c: Category) => c.href.replace("/category/", "");
@@ -18,6 +19,7 @@ export default function CategoriesAdmin({
 }: {
   initialCategories: Category[];
 }) {
+  const { toast, confirm } = useAdminUI();
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [editing, setEditing] = useState<string | null>(null); // null closed, "new", or slug
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -87,6 +89,7 @@ export default function CategoriesAdmin({
             count: 0,
           },
         ]);
+        toast("Category added");
       } else if (editing) {
         const res = await fetch(`/api/admin/categories/${editing}`, {
           method: "PUT",
@@ -106,20 +109,33 @@ export default function CategoriesAdmin({
               : c,
           ),
         );
+        toast("Category updated");
       }
       close();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setBusy(false);
     }
   }
 
   async function remove(c: Category) {
-    if (!confirm(`Delete category "${c.label}"? Products keep their tag but won't show anywhere.`))
-      return;
+    const ok = await confirm({
+      title: "Delete category",
+      message: `Delete "${c.label}"? Products keep their tag but won't show anywhere.`,
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/categories/${slugOf(c)}`, { method: "DELETE" });
-    if (res.ok) setCategories((prev) => prev.filter((x) => x.href !== c.href));
+    if (res.ok) {
+      setCategories((prev) => prev.filter((x) => x.href !== c.href));
+      toast("Category deleted");
+    } else {
+      toast("Could not delete category", "error");
+    }
   }
 
   return (

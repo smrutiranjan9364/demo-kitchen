@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import type { FestivalFood } from "@/lib/store";
 import SlideOver from "./SlideOver";
+import { useAdminUI } from "./AdminUI";
 
 type FormState = { name: string; festival: string; image: string; note: string };
 const EMPTY: FormState = { name: "", festival: "", image: "", note: "" };
@@ -13,6 +14,7 @@ export default function FestivalAdmin({
 }: {
   initialFoods: FestivalFood[];
 }) {
+  const { toast, confirm } = useAdminUI();
   const [foods, setFoods] = useState<FestivalFood[]>(initialFoods);
   const [editing, setEditing] = useState<string | null>(null); // null | "new" | id
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -56,6 +58,7 @@ export default function FestivalAdmin({
         if (!res.ok) throw new Error();
         const created: FestivalFood = await res.json();
         setFoods((prev) => [...prev, created]);
+        toast("Festival item added");
       } else if (editing) {
         const res = await fetch(`/api/admin/festival/${editing}`, {
           method: "PUT",
@@ -65,19 +68,32 @@ export default function FestivalAdmin({
         if (!res.ok) throw new Error();
         const updated: FestivalFood = await res.json();
         setFoods((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
+        toast("Festival item updated");
       }
       setEditing(null);
     } catch {
       setError("Could not save. Please try again.");
+      toast("Could not save festival item", "error");
     } finally {
       setBusy(false);
     }
   }
 
   async function remove(f: FestivalFood) {
-    if (!confirm(`Delete "${f.name}"?`)) return;
+    const ok = await confirm({
+      title: "Delete festival item",
+      message: `"${f.name}" will be removed from the festival page.`,
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/festival/${f.id}`, { method: "DELETE" });
-    if (res.ok) setFoods((prev) => prev.filter((x) => x.id !== f.id));
+    if (res.ok) {
+      setFoods((prev) => prev.filter((x) => x.id !== f.id));
+      toast("Festival item deleted");
+    } else {
+      toast("Could not delete item", "error");
+    }
   }
 
   return (

@@ -6,6 +6,7 @@ import type { Product } from "@/data/products";
 import type { Category } from "@/data/site";
 import SlideOver from "./SlideOver";
 import SearchableSelect from "./SearchableSelect";
+import { useAdminUI } from "./AdminUI";
 
 const slugOf = (c: Category) => c.href.replace("/category/", "");
 
@@ -70,6 +71,7 @@ export default function ProductsAdmin({
   // hidden and new products default to (and are locked to) this category.
   lockedCategory?: string;
 }) {
+  const { toast, confirm } = useAdminUI();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [editingId, setEditingId] = useState<string | null>(null); // null = closed, "new" = add
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -132,6 +134,7 @@ export default function ProductsAdmin({
         if (!res.ok) throw new Error();
         const created: Product = await res.json();
         setProducts((prev) => [created, ...prev]);
+        toast("Product added");
       } else if (editingId) {
         const res = await fetch(`/api/admin/products/${editingId}`, {
           method: "PUT",
@@ -141,19 +144,32 @@ export default function ProductsAdmin({
         if (!res.ok) throw new Error();
         const updated: Product = await res.json();
         setProducts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+        toast("Product updated");
       }
       close();
     } catch {
       setError("Could not save. Please try again.");
+      toast("Could not save product", "error");
     } finally {
       setBusy(false);
     }
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this product?")) return;
+    const ok = await confirm({
+      title: "Delete product",
+      message: "This product will be permanently removed. This cannot be undone.",
+      confirmText: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-    if (res.ok) setProducts((prev) => prev.filter((p) => p.id !== id));
+    if (res.ok) {
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+      toast("Product deleted");
+    } else {
+      toast("Could not delete product", "error");
+    }
   }
 
   return (

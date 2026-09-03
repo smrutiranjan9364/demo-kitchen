@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import SlideOver from "./SlideOver";
+import { useAdminUI } from "./AdminUI";
 import { RIGHTS, ALL_RIGHTS, NON_GRANTABLE_PAGES, type Right } from "@/lib/permissions";
 
 type AdminRow = {
@@ -30,6 +31,7 @@ export default function AdminsAdmin({
   initialUsers: AdminRow[];
   superUsername: string;
 }) {
+  const { toast, confirm } = useAdminUI();
   const [users, setUsers] = useState<AdminRow[]>(initialUsers);
   // null = closed, "new" = add, else the username being edited
   const [editing, setEditing] = useState<string | null>(null);
@@ -78,6 +80,7 @@ export default function AdminsAdmin({
         }
         const created: AdminRow = await res.json();
         setUsers((prev) => [...prev, created]);
+        toast("Admin added");
       } else if (editing) {
         const res = await fetch(`/api/admin/users/${encodeURIComponent(editing)}`, {
           method: "PUT",
@@ -87,19 +90,33 @@ export default function AdminsAdmin({
         if (!res.ok) throw new Error("Could not update access");
         const updated: AdminRow = await res.json();
         setUsers((prev) => prev.map((u) => (u.username === updated.username ? updated : u)));
+        toast("Access updated");
       }
       setEditing(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const msg = err instanceof Error ? err.message : "Something went wrong";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setBusy(false);
     }
   }
 
   async function remove(u: string) {
-    if (!confirm(`Remove admin "${u}"? They will no longer be able to sign in.`)) return;
+    const ok = await confirm({
+      title: "Remove admin",
+      message: `"${u}" will no longer be able to sign in.`,
+      confirmText: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/admin/users/${encodeURIComponent(u)}`, { method: "DELETE" });
-    if (res.ok) setUsers((prev) => prev.filter((x) => x.username !== u));
+    if (res.ok) {
+      setUsers((prev) => prev.filter((x) => x.username !== u));
+      toast("Admin removed");
+    } else {
+      toast("Could not remove admin", "error");
+    }
   }
 
   return (

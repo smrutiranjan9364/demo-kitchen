@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
+import { AdminUIProvider } from "./AdminUI";
 import type { Role } from "@/lib/auth";
 import type { Right } from "@/lib/permissions";
 
@@ -277,7 +278,9 @@ export default function AdminShell({
           </button>
         </header>
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+          <AdminUIProvider>{children}</AdminUIProvider>
+        </main>
       </div>
     </div>
   );

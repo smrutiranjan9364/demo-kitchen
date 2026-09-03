@@ -21,7 +21,12 @@ import {
 } from "@/data/site";
 import { ALL_RIGHTS, type Right } from "@/lib/permissions";
 
-const DIR = path.join(process.cwd(), "data", ".store");
+// The project directory is read-only on serverless hosts (e.g. Vercel), where
+// only /tmp is writable. Use /tmp there so seeding/reads don't crash pages.
+const DIR =
+  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
+    ? path.join("/tmp", "odia-store")
+    : path.join(process.cwd(), "data", ".store");
 const file = (name: string) => path.join(DIR, name);
 
 async function readJson<T>(name: string, fallback: T): Promise<T> {
@@ -33,9 +38,15 @@ async function readJson<T>(name: string, fallback: T): Promise<T> {
   }
 }
 
+// Never throws: on a read-only filesystem the data simply stays in memory for
+// this request, so storefront pages still render from their seed data.
 async function writeJson(name: string, data: unknown): Promise<void> {
-  await fs.mkdir(DIR, { recursive: true });
-  await fs.writeFile(file(name), JSON.stringify(data, null, 2), "utf8");
+  try {
+    await fs.mkdir(DIR, { recursive: true });
+    await fs.writeFile(file(name), JSON.stringify(data, null, 2), "utf8");
+  } catch {
+    /* read-only fs (serverless) — ignore */
+  }
 }
 
 function slugify(s: string): string {

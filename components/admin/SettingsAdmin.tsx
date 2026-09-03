@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import type { Settings } from "@/lib/store";
+import { useAdminUI } from "./AdminUI";
 
 export default function SettingsAdmin({ initial }: { initial: Settings }) {
+  const { toast } = useAdminUI();
   const [form, setForm] = useState({
     storeName: initial.storeName,
     email: initial.email,
@@ -38,8 +40,10 @@ export default function SettingsAdmin({ initial }: { initial: Settings }) {
       });
       if (!res.ok) throw new Error();
       setSaved(true);
+      toast("Settings saved");
     } catch {
       setError("Could not save settings.");
+      toast("Could not save settings", "error");
     } finally {
       setBusy(false);
     }
