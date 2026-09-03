@@ -49,11 +49,13 @@ function StarInput({
 
 export default function ProductReviews({
   productId,
+  productName,
   baseRating,
   baseCount,
   sampleReviews,
 }: {
   productId: string;
+  productName?: string;
   baseRating: number;
   baseCount: number;
   sampleReviews: Review[];
@@ -105,6 +107,21 @@ export default function ProductReviews({
     setName("");
     setRating(0);
     setComment("");
+
+    // Also send to the server so it shows in the admin panel (best-effort).
+    fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productId,
+        productName,
+        name: review.name,
+        rating: review.rating,
+        comment: review.comment,
+      }),
+    }).catch(() => {
+      /* offline / storage-only is fine */
+    });
   }
 
   // Live average includes the customer's own submitted reviews.

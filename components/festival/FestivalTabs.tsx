@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { FestivalFood } from "@/data/products";
+import type { FestivalFood } from "@/lib/store";
 
 // Approximate month/day for each festival, used to detect the current/upcoming one.
 const FESTIVAL_DATES: Record<string, { month: number; day: number }> = {
@@ -11,13 +11,6 @@ const FESTIVAL_DATES: Record<string, { month: number; day: number }> = {
   "Raja Parba": { month: 6, day: 15 },
   "Kartik Purnima": { month: 11, day: 24 },
   Prathamastami: { month: 12, day: 1 },
-};
-
-const FESTIVAL_NOTES: Record<string, string> = {
-  "chhena-poda": "A caramelised cheese dessert, slow-baked to a smoky, golden finish.",
-  "arisa-pitha": "Sweet rice-flour cakes fried in ghee — a Sankranti favourite.",
-  rasabali: "Soft fried chhena discs soaked in thickened, cardamom-spiced milk.",
-  "enduri-pitha": "Rice-and-lentil cakes steamed in fragrant turmeric leaves — the Prathamastami classic.",
 };
 
 // Which festival is nearest upcoming from today (wraps to next year if passed).
@@ -100,7 +93,7 @@ export default function FestivalTabs({ foods }: { foods: FestivalFood[] }) {
               </span>
               <h2 className="mt-1 font-serif text-xl text-gray-900">{item.name}</h2>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-500">
-                {FESTIVAL_NOTES[item.id] ??
+                {item.note ??
                   "A cherished festive delicacy from Odisha's kitchens."}
               </p>
               <Link

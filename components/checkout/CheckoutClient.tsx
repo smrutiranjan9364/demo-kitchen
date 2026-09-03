@@ -48,6 +48,33 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        // Persist the order so it shows in the admin panel (best-effort).
+        fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: fd.get("name"),
+            phone: fd.get("phone"),
+            email: fd.get("email"),
+            address: fd.get("address"),
+            city: fd.get("city"),
+            state: fd.get("state"),
+            pincode: fd.get("pincode"),
+            payment,
+            items: items.map((it) => ({
+              id: it.id,
+              name: it.name,
+              price: it.price,
+              qty: it.qty,
+            })),
+            subtotal,
+            delivery,
+            total,
+          }),
+        }).catch(() => {
+          /* still confirm to the shopper even if persistence fails */
+        });
         setPlaced(true);
       }}
       className="grid grid-cols-1 gap-8 lg:grid-cols-3"

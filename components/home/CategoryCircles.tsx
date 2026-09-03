@@ -1,14 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CATEGORY_CIRCLES } from "@/data/site";
+import { getCategories } from "@/lib/store";
 
 // One "reel" repeats the base list enough times to be wider than any screen.
 // We render two identical reels, so translateX(-50%) loops seamlessly with
 // no blank space, on any viewport width.
 const REEL_REPEAT = 2;
 
-export default function CategoryCircles() {
-  const reel = Array.from({ length: REEL_REPEAT }).flatMap(() => CATEGORY_CIRCLES);
+export default async function CategoryCircles() {
+  const categories = await getCategories();
+  const reel = Array.from({ length: REEL_REPEAT }).flatMap(() => categories);
   const items = [...reel, ...reel]; // two identical halves
 
   return (
@@ -23,7 +24,7 @@ export default function CategoryCircles() {
             <Link
               key={`${cat.label}-${i}`}
               href={cat.href}
-              aria-hidden={i >= CATEGORY_CIRCLES.length}
+              aria-hidden={i >= categories.length}
               className="group/item flex shrink-0 flex-col items-center gap-3 px-6"
             >
               <span className="relative h-24 w-24 overflow-hidden rounded-2xl bg-cream-soft p-2 shadow-sm ring-1 ring-black/5 transition duration-300 group-hover/item:-translate-y-1 group-hover/item:shadow-lg group-hover/item:ring-2 group-hover/item:ring-brand">

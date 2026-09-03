@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { NAV_CATEGORIES, CONTACT } from "@/data/site";
 import CartLink from "./CartLink";
 import MoreMenu from "./MoreMenu";
@@ -14,12 +15,20 @@ export default function Header() {
           {/* Hamburger (mobile) */}
           <MobileNav />
 
-          <Link
-            href="/"
-            className="font-serif text-lg italic tracking-wide whitespace-nowrap sm:text-xl"
-          >
-            <span className="text-[#f06aa8]">Odia</span>{" "}
-            <span className="text-cream">Kitchen</span>
+          <Link href="/" className="shrink-0" aria-label="Odia Kitchen — home">
+            <BrandLogo
+              src="/logo-1.png"
+              width={220}
+              height={73}
+              priority
+              imgClassName="h-12 w-auto sm:h-16"
+              fallback={
+                <span className="font-serif text-lg italic tracking-wide whitespace-nowrap sm:text-xl">
+                  <span className="text-[#f06aa8]">Odia</span>{" "}
+                  <span className="text-cream">Kitchen</span>
+                </span>
+              }
+            />
           </Link>
 
           {/* Search (desktop) */}

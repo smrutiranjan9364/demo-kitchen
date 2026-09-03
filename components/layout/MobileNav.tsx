@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { useState, useEffect } from "react";
 import { NAV_CATEGORIES, MORE_MENU, CONTACT } from "@/data/site";
 
@@ -42,9 +43,16 @@ export default function MobileNav() {
           <div className="absolute left-0 top-0 flex h-full w-[82%] max-w-xs flex-col bg-white text-gray-800 shadow-xl">
             {/* Header */}
             <div className="flex items-center justify-between bg-brand px-4 py-4 text-cream">
-              <span className="font-serif text-lg italic">
-                <span className="text-[#f06aa8]">Odia</span> Kitchen
-              </span>
+              <BrandLogo
+                width={130}
+                height={43}
+                imgClassName="h-8 w-auto"
+                fallback={
+                  <span className="font-serif text-lg italic">
+                    <span className="text-[#f06aa8]">Odia</span> Kitchen
+                  </span>
+                }
+              />
               <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-xl">
                 ✕
               </button>
