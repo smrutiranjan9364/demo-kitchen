@@ -1,53 +1,21 @@
-// Server-only fs-backed JSON store. There is no database in this project, so
-// products, orders and reviews are persisted as JSON files under data/.store
-// (git-ignored). Products are seeded from the static catalog on first read.
+// Server-only data store, backed by Postgres (Neon). Products, orders, reviews,
+// categories, admin users, festival foods and settings are persisted in the
+// database. The static catalog under data/ is only used to *seed* the DB (see
+// db/seed.ts); at runtime everything reads/writes SQL.
 //
-// This module uses the Node filesystem — import it only from server code
+// This module uses the Node Postgres client — import it only from server code
 // (server components, route handlers). Never from a "use client" file.
-import { promises as fs } from "fs";
-import path from "path";
+//
+// The exported function names and signatures are unchanged from the previous
+// file-backed implementation, so no callers needed to change.
+import { sql } from "@/lib/db";
 import {
-  ALL_PRODUCTS,
   CATALOG_PRODUCTS,
-  FESTIVAL_FOODS as SEED_FESTIVAL_FOODS,
   getProductById as staticGetProductById,
   type Product,
 } from "@/data/products";
-import {
-  CATEGORIES as SEED_CATEGORIES,
-  categorySlug,
-  CONTACT,
-  type Category,
-} from "@/data/site";
+import { CONTACT, type Category } from "@/data/site";
 import { ALL_RIGHTS, type Right } from "@/lib/permissions";
-
-// The project directory is read-only on serverless hosts (e.g. Vercel), where
-// only /tmp is writable. Use /tmp there so seeding/reads don't crash pages.
-const DIR =
-  process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME
-    ? path.join("/tmp", "odia-store")
-    : path.join(process.cwd(), "data", ".store");
-const file = (name: string) => path.join(DIR, name);
-
-async function readJson<T>(name: string, fallback: T): Promise<T> {
-  try {
-    const raw = await fs.readFile(file(name), "utf8");
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-// Never throws: on a read-only filesystem the data simply stays in memory for
-// this request, so storefront pages still render from their seed data.
-async function writeJson(name: string, data: unknown): Promise<void> {
-  try {
-    await fs.mkdir(DIR, { recursive: true });
-    await fs.writeFile(file(name), JSON.stringify(data, null, 2), "utf8");
-  } catch {
-    /* read-only fs (serverless) — ignore */
-  }
-}
 
 function slugify(s: string): string {
   return (
@@ -63,31 +31,61 @@ function slugify(s: string): string {
 
 export type AdminProduct = Product;
 
-// The catalog products are the editable set. Seeded from ALL_PRODUCTS (the
-// per-category catalog) on first read so the storefront and admin share data.
+// Maps a DB row (snake_case, nulls) to the app's Product shape (camelCase,
+// optional fields undefined rather than null).
+type ProductRow = {
+  id: string;
+  name: string;
+  price: number;
+  rating: number;
+  reviews: number;
+  category: string | null;
+  image: string | null;
+  old_price: number | null;
+  discount: number | null;
+};
+
+function toProduct(r: ProductRow): AdminProduct {
+  return {
+    id: r.id,
+    name: r.name,
+    price: r.price,
+    rating: r.rating,
+    reviews: r.reviews,
+    category: r.category ?? undefined,
+    image: r.image ?? undefined,
+    oldPrice: r.old_price ?? undefined,
+    discount: r.discount ?? undefined,
+  };
+}
+
 export async function getProducts(): Promise<AdminProduct[]> {
-  const existing = await readJson<AdminProduct[] | null>("products.json", null);
-  if (existing) return existing;
-  const seed = ALL_PRODUCTS.map((p) => ({ ...p }));
-  await writeJson("products.json", seed);
-  return seed;
+  const rows = await sql<ProductRow[]>`SELECT * FROM products ORDER BY name`;
+  return rows.map(toProduct);
 }
 
 export async function getProduct(id: string): Promise<AdminProduct | undefined> {
-  const found = (await getProducts()).find((p) => p.id === id);
+  const rows = await sql<ProductRow[]>`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
+  if (rows[0]) return toProduct(rows[0]);
   // Fall back to curated static items (best-sellers / deals) whose detail
   // pages are linked by their own ids and aren't part of the editable set.
-  return found ?? staticGetProductById(id);
+  return staticGetProductById(id);
 }
 
 export async function getProductsByCategory(slug: string): Promise<AdminProduct[]> {
-  return (await getProducts()).filter((p) => p.category === slug);
+  const rows = await sql<ProductRow[]>`
+    SELECT * FROM products WHERE category = ${slug} ORDER BY name`;
+  return rows.map(toProduct);
 }
 
 export async function getRelated(product: AdminProduct, limit = 4): Promise<AdminProduct[]> {
-  return (await getProducts())
-    .filter((p) => p.id !== product.id && p.category && p.category === product.category)
-    .slice(0, limit);
+  if (!product.category) return [];
+  const rows = await sql<ProductRow[]>`
+    SELECT * FROM products
+    WHERE category = ${product.category} AND id <> ${product.id}
+    ORDER BY name
+    LIMIT ${limit}`;
+  return rows.map(toProduct);
 }
 
 export type ProductInput = {
@@ -102,41 +100,41 @@ export type ProductInput = {
 };
 
 export async function createProduct(input: ProductInput): Promise<AdminProduct> {
-  const products = await getProducts();
-  const product: AdminProduct = {
-    id: `${slugify(input.name)}-${Date.now().toString(36)}`,
-    name: input.name,
-    price: input.price,
-    rating: input.rating ?? 4.5,
-    reviews: input.reviews ?? 0,
-    category: input.category,
-    image: input.image,
-    oldPrice: input.oldPrice,
-    discount: input.discount,
-  };
-  products.push(product);
-  await writeJson("products.json", products);
-  return product;
+  const id = `${slugify(input.name)}-${Date.now().toString(36)}`;
+  const rows = await sql<ProductRow[]>`
+    INSERT INTO products (id, name, price, rating, reviews, category, image, old_price, discount)
+    VALUES (${id}, ${input.name}, ${input.price}, ${input.rating ?? 4.5}, ${input.reviews ?? 0},
+            ${input.category ?? null}, ${input.image ?? null},
+            ${input.oldPrice ?? null}, ${input.discount ?? null})
+    RETURNING *`;
+  return toProduct(rows[0]);
 }
 
 export async function updateProduct(
   id: string,
   patch: Partial<ProductInput>,
 ): Promise<AdminProduct | undefined> {
-  const products = await getProducts();
-  const i = products.findIndex((p) => p.id === id);
-  if (i < 0) return undefined;
-  products[i] = { ...products[i], ...patch, id };
-  await writeJson("products.json", products);
-  return products[i];
+  const existing = await sql<ProductRow[]>`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
+  if (!existing[0]) return undefined;
+  const cur = existing[0];
+  const rows = await sql<ProductRow[]>`
+    UPDATE products SET
+      name      = ${patch.name ?? cur.name},
+      price     = ${patch.price ?? cur.price},
+      rating    = ${patch.rating ?? cur.rating},
+      reviews   = ${patch.reviews ?? cur.reviews},
+      category  = ${patch.category ?? cur.category},
+      image     = ${patch.image ?? cur.image},
+      old_price = ${patch.oldPrice ?? cur.old_price},
+      discount  = ${patch.discount ?? cur.discount}
+    WHERE id = ${id}
+    RETURNING *`;
+  return toProduct(rows[0]);
 }
 
 export async function deleteProduct(id: string): Promise<boolean> {
-  const products = await getProducts();
-  const next = products.filter((p) => p.id !== id);
-  if (next.length === products.length) return false;
-  await writeJson("products.json", next);
-  return true;
+  const rows = await sql`DELETE FROM products WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
 }
 
 /* ------------------------------ Orders ------------------------------ */
@@ -161,23 +159,63 @@ export type Order = {
   status: string;
 };
 
+type OrderRow = {
+  id: string;
+  created_at: Date;
+  name: string;
+  phone: string;
+  email: string;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  payment: string;
+  items: OrderItem[];
+  subtotal: number;
+  delivery: number;
+  total: number;
+  status: string;
+};
+
+function toOrder(r: OrderRow): Order {
+  return {
+    id: r.id,
+    createdAt: r.created_at.toISOString(),
+    name: r.name,
+    phone: r.phone,
+    email: r.email,
+    address: r.address ?? undefined,
+    city: r.city ?? undefined,
+    state: r.state ?? undefined,
+    pincode: r.pincode ?? undefined,
+    payment: r.payment,
+    items: r.items,
+    subtotal: r.subtotal,
+    delivery: r.delivery,
+    total: r.total,
+    status: r.status,
+  };
+}
+
 export async function getOrders(): Promise<Order[]> {
-  return readJson<Order[]>("orders.json", []);
+  const rows = await sql<OrderRow[]>`SELECT * FROM orders ORDER BY created_at DESC`;
+  return rows.map(toOrder);
 }
 
 export async function createOrder(
   data: Omit<Order, "id" | "createdAt" | "status"> & { status?: string },
 ): Promise<Order> {
-  const orders = await getOrders();
-  const order: Order = {
-    ...data,
-    id: `ord_${Date.now().toString(36)}`,
-    createdAt: new Date().toISOString(),
-    status: data.status ?? "Placed",
-  };
-  orders.unshift(order);
-  await writeJson("orders.json", orders);
-  return order;
+  const id = `ord_${Date.now().toString(36)}`;
+  const rows = await sql<OrderRow[]>`
+    INSERT INTO orders (id, name, phone, email, address, city, state, pincode,
+                        payment, items, subtotal, delivery, total, status)
+    VALUES (${id}, ${data.name}, ${data.phone}, ${data.email},
+            ${data.address ?? null}, ${data.city ?? null}, ${data.state ?? null},
+            ${data.pincode ?? null}, ${data.payment},
+            ${sql.json(data.items)}, ${data.subtotal}, ${data.delivery},
+            ${data.total}, ${data.status ?? "Placed"})
+    RETURNING *`;
+  return toOrder(rows[0]);
 }
 
 /* ------------------------------ Reviews ----------------------------- */
@@ -192,22 +230,43 @@ export type StoredReview = {
   createdAt: string;
 };
 
+type ReviewRow = {
+  id: string;
+  product_id: string;
+  product_name: string | null;
+  name: string;
+  rating: number;
+  comment: string;
+  created_at: Date;
+};
+
+function toReview(r: ReviewRow): StoredReview {
+  return {
+    id: r.id,
+    productId: r.product_id,
+    productName: r.product_name ?? undefined,
+    name: r.name,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at.toISOString(),
+  };
+}
+
 export async function getReviews(): Promise<StoredReview[]> {
-  return readJson<StoredReview[]>("reviews.json", []);
+  const rows = await sql<ReviewRow[]>`SELECT * FROM reviews ORDER BY created_at DESC`;
+  return rows.map(toReview);
 }
 
 export async function createReview(
   data: Omit<StoredReview, "id" | "createdAt">,
 ): Promise<StoredReview> {
-  const reviews = await getReviews();
-  const review: StoredReview = {
-    ...data,
-    id: `rev_${Date.now().toString(36)}`,
-    createdAt: new Date().toISOString(),
-  };
-  reviews.unshift(review);
-  await writeJson("reviews.json", reviews);
-  return review;
+  const id = `rev_${Date.now().toString(36)}`;
+  const rows = await sql<ReviewRow[]>`
+    INSERT INTO reviews (id, product_id, product_name, name, rating, comment)
+    VALUES (${id}, ${data.productId}, ${data.productName ?? null},
+            ${data.name}, ${data.rating}, ${data.comment})
+    RETURNING *`;
+  return toReview(rows[0]);
 }
 
 /* ---------------------------- Categories ---------------------------- */
@@ -222,31 +281,31 @@ type RawCategory = {
   description?: string;
 };
 
+type CategoryRow = {
+  slug: string;
+  label: string;
+  image: string;
+  description: string | null;
+};
+
 const DEFAULT_CATEGORY_IMAGE =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg";
 
-async function getRawCategories(): Promise<RawCategory[]> {
-  const existing = await readJson<RawCategory[] | null>("categories.json", null);
-  if (existing) return existing;
-  const seed: RawCategory[] = SEED_CATEGORIES.map((c) => ({
-    slug: categorySlug(c),
-    label: c.label,
-    image: c.image,
-    description: c.description,
-  }));
-  await writeJson("categories.json", seed);
-  return seed;
-}
-
 // Returns categories in the frontend `Category` shape, with a live product count.
 export async function getCategories(): Promise<Category[]> {
-  const [raw, products] = await Promise.all([getRawCategories(), getProducts()]);
-  return raw.map((c) => ({
+  const rows = await sql<(CategoryRow & { count: number })[]>`
+    SELECT c.slug, c.label, c.image, c.description,
+           count(p.id)::int AS count
+    FROM categories c
+    LEFT JOIN products p ON p.category = c.slug
+    GROUP BY c.slug, c.label, c.image, c.description
+    ORDER BY c.label`;
+  return rows.map((c) => ({
     label: c.label,
     href: `/category/${c.slug}`,
     image: c.image,
-    description: c.description,
-    count: products.filter((p) => p.category === c.slug).length,
+    description: c.description ?? undefined,
+    count: c.count,
   }));
 }
 
@@ -263,43 +322,41 @@ export type CategoryInput = {
 
 // Returns the created category, or null if the slug already exists.
 export async function createCategory(input: CategoryInput): Promise<RawCategory | null> {
-  const raw = await getRawCategories();
   const slug = (input.slug?.trim() || slugify(input.label)).replace(/[^a-z0-9-]/g, "");
-  if (!slug || raw.some((c) => c.slug === slug)) return null;
-  const category: RawCategory = {
-    slug,
-    label: input.label.trim(),
-    image: input.image?.trim() || DEFAULT_CATEGORY_IMAGE,
-    description: input.description?.trim() || undefined,
-  };
-  raw.push(category);
-  await writeJson("categories.json", raw);
-  return category;
+  if (!slug) return null;
+  const existing = await sql`SELECT 1 FROM categories WHERE slug = ${slug} LIMIT 1`;
+  if (existing.length > 0) return null;
+  const rows = await sql<CategoryRow[]>`
+    INSERT INTO categories (slug, label, image, description)
+    VALUES (${slug}, ${input.label.trim()},
+            ${input.image?.trim() || DEFAULT_CATEGORY_IMAGE},
+            ${input.description?.trim() || null})
+    RETURNING *`;
+  const r = rows[0];
+  return { slug: r.slug, label: r.label, image: r.image, description: r.description ?? undefined };
 }
 
 export async function updateCategory(
   slug: string,
   patch: Partial<CategoryInput>,
 ): Promise<RawCategory | undefined> {
-  const raw = await getRawCategories();
-  const i = raw.findIndex((c) => c.slug === slug);
-  if (i < 0) return undefined;
-  raw[i] = {
-    slug,
-    label: patch.label?.trim() ?? raw[i].label,
-    image: patch.image?.trim() ?? raw[i].image,
-    description: patch.description?.trim() ?? raw[i].description,
-  };
-  await writeJson("categories.json", raw);
-  return raw[i];
+  const existing = await sql<CategoryRow[]>`SELECT * FROM categories WHERE slug = ${slug} LIMIT 1`;
+  if (!existing[0]) return undefined;
+  const cur = existing[0];
+  const rows = await sql<CategoryRow[]>`
+    UPDATE categories SET
+      label       = ${patch.label?.trim() ?? cur.label},
+      image       = ${patch.image?.trim() ?? cur.image},
+      description = ${patch.description?.trim() ?? cur.description}
+    WHERE slug = ${slug}
+    RETURNING *`;
+  const r = rows[0];
+  return { slug: r.slug, label: r.label, image: r.image, description: r.description ?? undefined };
 }
 
 export async function deleteCategory(slug: string): Promise<boolean> {
-  const raw = await getRawCategories();
-  const next = raw.filter((c) => c.slug !== slug);
-  if (next.length === raw.length) return false;
-  await writeJson("categories.json", next);
-  return true;
+  const rows = await sql`DELETE FROM categories WHERE slug = ${slug} RETURNING slug`;
+  return rows.length > 0;
 }
 
 /* ------------------------------ Admins ------------------------------ */
@@ -316,14 +373,35 @@ export type AdminUser = {
   createdAt: string;
 };
 
+type UserRow = {
+  username: string;
+  password_hash: string;
+  salt: string;
+  role: string;
+  permissions: Right[];
+  created_at: Date;
+};
+
+function toUser(r: UserRow): AdminUser {
+  return {
+    username: r.username,
+    passwordHash: r.password_hash,
+    salt: r.salt,
+    role: "admin",
+    // Back-fill permissions for any user saved before rights existed.
+    permissions: r.permissions ?? ALL_RIGHTS,
+    createdAt: r.created_at.toISOString(),
+  };
+}
+
 export async function getUsers(): Promise<AdminUser[]> {
-  const users = await readJson<AdminUser[]>("users.json", []);
-  // Back-fill permissions for any user saved before rights existed.
-  return users.map((u) => ({ ...u, permissions: u.permissions ?? ALL_RIGHTS }));
+  const rows = await sql<UserRow[]>`SELECT * FROM users ORDER BY created_at`;
+  return rows.map(toUser);
 }
 
 export async function findUser(username: string): Promise<AdminUser | undefined> {
-  return (await getUsers()).find((u) => u.username === username);
+  const rows = await sql<UserRow[]>`SELECT * FROM users WHERE username = ${username} LIMIT 1`;
+  return rows[0] ? toUser(rows[0]) : undefined;
 }
 
 // The rights granted to an admin user (empty if not found).
@@ -334,40 +412,32 @@ export async function getUserPermissions(username: string): Promise<Right[]> {
 export async function createUser(
   data: Omit<AdminUser, "role" | "createdAt" | "permissions"> & { permissions?: Right[] },
 ): Promise<AdminUser | null> {
-  const users = await getUsers();
-  if (users.some((u) => u.username === data.username)) return null;
+  const existing = await sql`SELECT 1 FROM users WHERE username = ${data.username} LIMIT 1`;
+  if (existing.length > 0) return null;
   const permissions = (data.permissions ?? ALL_RIGHTS).filter((p) => ALL_RIGHTS.includes(p));
-  const user: AdminUser = {
-    username: data.username,
-    passwordHash: data.passwordHash,
-    salt: data.salt,
-    role: "admin",
-    permissions,
-    createdAt: new Date().toISOString(),
-  };
-  users.push(user);
-  await writeJson("users.json", users);
-  return user;
+  const rows = await sql<UserRow[]>`
+    INSERT INTO users (username, password_hash, salt, role, permissions)
+    VALUES (${data.username}, ${data.passwordHash}, ${data.salt}, ${"admin"},
+            ${sql.json(permissions)})
+    RETURNING *`;
+  return toUser(rows[0]);
 }
 
 export async function updateUserPermissions(
   username: string,
   permissions: Right[],
 ): Promise<AdminUser | undefined> {
-  const users = await getUsers();
-  const i = users.findIndex((u) => u.username === username);
-  if (i < 0) return undefined;
-  users[i] = { ...users[i], permissions: permissions.filter((p) => ALL_RIGHTS.includes(p)) };
-  await writeJson("users.json", users);
-  return users[i];
+  const filtered = permissions.filter((p) => ALL_RIGHTS.includes(p));
+  const rows = await sql<UserRow[]>`
+    UPDATE users SET permissions = ${sql.json(filtered)}
+    WHERE username = ${username}
+    RETURNING *`;
+  return rows[0] ? toUser(rows[0]) : undefined;
 }
 
 export async function deleteUser(username: string): Promise<boolean> {
-  const users = await getUsers();
-  const next = users.filter((u) => u.username !== username);
-  if (next.length === users.length) return false;
-  await writeJson("users.json", next);
-  return true;
+  const rows = await sql`DELETE FROM users WHERE username = ${username} RETURNING username`;
+  return rows.length > 0;
 }
 
 /* ----------------------------- Festival ----------------------------- */
@@ -381,34 +451,32 @@ export type FestivalFood = {
   note?: string;
 };
 
-// Default descriptions for the seeded items (previously hard-coded in the UI).
-const SEED_FESTIVAL_NOTES: Record<string, string> = {
-  "chhena-poda": "A caramelised cheese dessert, slow-baked to a smoky, golden finish.",
-  "arisa-pitha": "Sweet rice-flour cakes fried in ghee — a Sankranti favourite.",
-  rasabali: "Soft fried chhena discs soaked in thickened, cardamom-spiced milk.",
-  "enduri-pitha": "Rice-and-lentil cakes steamed in fragrant turmeric leaves — the Prathamastami classic.",
+type FestivalRow = {
+  id: string;
+  name: string;
+  festival: string;
+  image: string;
+  note: string | null;
 };
 
-async function getRawFestival(): Promise<FestivalFood[] | null> {
-  return readJson<FestivalFood[] | null>("festival.json", null);
+function toFestival(r: FestivalRow): FestivalFood {
+  return {
+    id: r.id,
+    name: r.name,
+    festival: r.festival,
+    image: r.image,
+    note: r.note ?? undefined,
+  };
 }
 
 export async function getFestivalFoods(): Promise<FestivalFood[]> {
-  const existing = await getRawFestival();
-  if (existing) return existing;
-  const seed: FestivalFood[] = SEED_FESTIVAL_FOODS.map((f) => ({
-    id: f.id,
-    name: f.name,
-    festival: f.festival,
-    image: f.image,
-    note: SEED_FESTIVAL_NOTES[f.id],
-  }));
-  await writeJson("festival.json", seed);
-  return seed;
+  const rows = await sql<FestivalRow[]>`SELECT * FROM festival_foods ORDER BY name`;
+  return rows.map(toFestival);
 }
 
 export async function getFestivalFood(id: string): Promise<FestivalFood | undefined> {
-  return (await getFestivalFoods()).find((f) => f.id === id);
+  const rows = await sql<FestivalRow[]>`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
+  return rows[0] ? toFestival(rows[0]) : undefined;
 }
 
 export type FestivalInput = {
@@ -419,44 +487,36 @@ export type FestivalInput = {
 };
 
 export async function createFestivalFood(input: FestivalInput): Promise<FestivalFood> {
-  const foods = await getFestivalFoods();
-  const food: FestivalFood = {
-    id: `${slugify(input.name)}-${Date.now().toString(36)}`,
-    name: input.name.trim(),
-    festival: input.festival.trim(),
-    image: input.image?.trim() || DEFAULT_CATEGORY_IMAGE,
-    note: input.note?.trim() || undefined,
-  };
-  foods.push(food);
-  await writeJson("festival.json", foods);
-  return food;
+  const id = `${slugify(input.name)}-${Date.now().toString(36)}`;
+  const rows = await sql<FestivalRow[]>`
+    INSERT INTO festival_foods (id, name, festival, image, note)
+    VALUES (${id}, ${input.name.trim()}, ${input.festival.trim()},
+            ${input.image?.trim() || DEFAULT_CATEGORY_IMAGE}, ${input.note?.trim() || null})
+    RETURNING *`;
+  return toFestival(rows[0]);
 }
 
 export async function updateFestivalFood(
   id: string,
   patch: Partial<FestivalInput>,
 ): Promise<FestivalFood | undefined> {
-  const foods = await getFestivalFoods();
-  const i = foods.findIndex((f) => f.id === id);
-  if (i < 0) return undefined;
-  foods[i] = {
-    ...foods[i],
-    name: patch.name?.trim() ?? foods[i].name,
-    festival: patch.festival?.trim() ?? foods[i].festival,
-    image: patch.image?.trim() ?? foods[i].image,
-    note: patch.note?.trim() ?? foods[i].note,
-    id,
-  };
-  await writeJson("festival.json", foods);
-  return foods[i];
+  const existing = await sql<FestivalRow[]>`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
+  if (!existing[0]) return undefined;
+  const cur = existing[0];
+  const rows = await sql<FestivalRow[]>`
+    UPDATE festival_foods SET
+      name     = ${patch.name?.trim() ?? cur.name},
+      festival = ${patch.festival?.trim() ?? cur.festival},
+      image    = ${patch.image?.trim() ?? cur.image},
+      note     = ${patch.note?.trim() ?? cur.note}
+    WHERE id = ${id}
+    RETURNING *`;
+  return toFestival(rows[0]);
 }
 
 export async function deleteFestivalFood(id: string): Promise<boolean> {
-  const foods = await getFestivalFoods();
-  const next = foods.filter((f) => f.id !== id);
-  if (next.length === foods.length) return false;
-  await writeJson("festival.json", next);
-  return true;
+  const rows = await sql`DELETE FROM festival_foods WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
 }
 
 /* ----------------------------- Settings ----------------------------- */
@@ -469,6 +529,14 @@ export type Settings = {
   freeDeliveryOver: number;
 };
 
+type SettingsRow = {
+  store_name: string;
+  email: string;
+  phone: string;
+  delivery_fee: number;
+  free_delivery_over: number;
+};
+
 const DEFAULT_SETTINGS: Settings = {
   storeName: "Odia Kitchen",
   email: CONTACT.email,
@@ -478,10 +546,25 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 export async function getSettings(): Promise<Settings> {
-  const existing = await readJson<Partial<Settings> | null>("settings.json", null);
-  if (existing) return { ...DEFAULT_SETTINGS, ...existing };
-  await writeJson("settings.json", DEFAULT_SETTINGS);
-  return DEFAULT_SETTINGS;
+  const rows = await sql<SettingsRow[]>`SELECT * FROM settings WHERE id = 1 LIMIT 1`;
+  if (!rows[0]) {
+    // Self-heal if the singleton row is missing (e.g. seed not run yet).
+    await sql`
+      INSERT INTO settings (id, store_name, email, phone, delivery_fee, free_delivery_over)
+      VALUES (1, ${DEFAULT_SETTINGS.storeName}, ${DEFAULT_SETTINGS.email},
+              ${DEFAULT_SETTINGS.phone}, ${DEFAULT_SETTINGS.deliveryFee},
+              ${DEFAULT_SETTINGS.freeDeliveryOver})
+      ON CONFLICT (id) DO NOTHING`;
+    return DEFAULT_SETTINGS;
+  }
+  const r = rows[0];
+  return {
+    storeName: r.store_name,
+    email: r.email,
+    phone: r.phone,
+    deliveryFee: r.delivery_fee,
+    freeDeliveryOver: r.free_delivery_over,
+  };
 }
 
 export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
@@ -499,7 +582,14 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
         ? patch.freeDeliveryOver
         : current.freeDeliveryOver,
   };
-  await writeJson("settings.json", next);
+  await sql`
+    UPDATE settings SET
+      store_name         = ${next.storeName},
+      email              = ${next.email},
+      phone              = ${next.phone},
+      delivery_fee       = ${next.deliveryFee},
+      free_delivery_over = ${next.freeDeliveryOver}
+    WHERE id = 1`;
   return next;
 }
 
