@@ -3,6 +3,9 @@ import Link from "next/link";
 import CartClient from "@/components/cart/CartClient";
 import { BEST_SELLERS } from "@/data/products";
 
+// Server-rendered on every request so it can reflect live data / settings.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Cart — Odia Kitchen",
   description: "Review the items in your cart at Odia Kitchen.",

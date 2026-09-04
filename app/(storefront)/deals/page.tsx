@@ -3,6 +3,9 @@ import Link from "next/link";
 import ProductCard from "@/components/home/ProductCard";
 import { TOP_DEALS } from "@/data/products";
 
+// Server-rendered on every request so it can reflect live data / settings.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Deals — Odia Kitchen",
   description: "Grab the best offers on authentic Odisha food at Odia Kitchen.",

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 
+// Server-rendered on every request so it can reflect live data / settings.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "About Us — Odia Kitchen",
   description:

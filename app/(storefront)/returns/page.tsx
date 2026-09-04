@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import LegalPage from "@/components/legal/LegalPage";
 
+// Server-rendered on every request so it can reflect live data / settings.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Return & Refund Policy — Odia Kitchen",
   description: "Our return, replacement and refund policy at Odia Kitchen.",

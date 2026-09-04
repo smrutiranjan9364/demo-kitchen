@@ -3,6 +3,9 @@ import Link from "next/link";
 import ContactForm from "@/components/contact/ContactForm";
 import { CONTACT } from "@/data/site";
 
+// Server-rendered on every request so it can reflect live data / settings.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Contact — Odia Kitchen",
   description: "Get in touch with Odia Kitchen — questions, orders and feedback.",

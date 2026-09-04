@@ -10,6 +10,7 @@ import {
 } from "@/lib/store";
 import { ALL_RIGHTS } from "@/lib/permissions";
 import AdminShell from "@/components/admin/AdminShell";
+import AutoRefresh from "@/components/admin/AutoRefresh";
 
 // Dashboard pages read live request data (cookies), so they render dynamically.
 export const dynamic = "force-dynamic";
@@ -41,6 +42,8 @@ export default async function DashboardLayout({
 
   return (
     <AdminShell user={session.username} role={session.role} counts={counts} rights={rights}>
+      {/* Auto-refresh server data (orders, counts, etc.) on a poll + tab focus. */}
+      <AutoRefresh intervalMs={15000} />
       {children}
     </AdminShell>
   );

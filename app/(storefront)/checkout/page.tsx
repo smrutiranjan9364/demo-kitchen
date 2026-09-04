@@ -3,6 +3,9 @@ import Link from "next/link";
 import CheckoutClient from "@/components/checkout/CheckoutClient";
 import { BEST_SELLERS } from "@/data/products";
 
+// Server-rendered on every request so it can reflect live data / settings.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Checkout — Odia Kitchen",
   description: "Complete your order at Odia Kitchen.",
