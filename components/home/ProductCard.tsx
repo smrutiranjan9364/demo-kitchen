@@ -3,12 +3,23 @@ import Link from "next/link";
 import type { Product } from "@/data/products";
 import AddToCartButton from "./AddToCartButton";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  headingLevel = 2,
+  sizes = "(min-width: 1280px) 296px, (min-width: 1024px) calc(25vw - 24px), (min-width: 640px) calc(33.333vw - 27px), calc(50vw - 24px)",
+  eager = false,
+}: {
+  product: Product;
+  headingLevel?: 2 | 3;
+  sizes?: string;
+  eager?: boolean;
+}) {
   const href = `/product/${product.id}`;
+  const Heading = headingLevel === 3 ? "h3" : "h2";
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-black/5 bg-white shadow-sm transition hover:shadow-md">
       {/* Image */}
-      <Link href={href} className="relative block aspect-square bg-cream-soft">
+      <Link href={href} aria-label={`View ${product.name}`} className="relative block aspect-square bg-cream-soft">
         {product.discount ? (
           <span className="absolute left-2 top-2 z-10 rounded bg-brand px-2 py-0.5 text-[10px] font-bold text-cream">
             {product.discount}% OFF
@@ -19,7 +30,9 @@ export default function ProductCard({ product }: { product: Product }) {
             src={product.image}
             alt={product.name}
             fill
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+            sizes={sizes}
+            loading={eager ? "eager" : "lazy"}
+            fetchPriority={eager ? "high" : undefined}
             className="object-cover transition duration-300 group-hover:scale-105"
           />
         ) : (
@@ -31,9 +44,11 @@ export default function ProductCard({ product }: { product: Product }) {
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-3">
-        <Link href={href} className="text-sm font-medium text-gray-800 hover:text-brand">
-          {product.name}
-        </Link>
+        <Heading className="text-sm font-medium text-gray-800">
+          <Link href={href} className="hover:text-brand">
+            {product.name}
+          </Link>
+        </Heading>
 
         <div className="flex items-center gap-1.5 text-xs">
           <span className="flex items-center gap-1 rounded bg-rating px-1.5 py-0.5 font-semibold text-white">

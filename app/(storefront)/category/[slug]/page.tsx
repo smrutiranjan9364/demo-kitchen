@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductCard from "@/components/home/ProductCard";
 import { getCategory, getProductsByCategory } from "@/lib/store";
+import { createMetadata } from "@/lib/seo";
+import { categorySeo } from "@/lib/catalog-seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +16,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const category = await getCategory(slug);
-  if (!category) return { title: "Category not found — Odia Kitchen" };
-  return {
-    title: `${category.label} — Odia Kitchen`,
-    description: category.description,
-  };
+  if (!category) notFound();
+  return createMetadata(categorySeo(category));
 }
 
 export default async function CategoryPage({
@@ -33,10 +33,15 @@ export default async function CategoryPage({
 
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={categorySeo(category)} breadcrumbs={[
+        { name: "Home", path: "/" },
+        { name: "Categories", path: "/categories" },
+        { name: category.label, path: category.href },
+      ]} />
       {/* Page header */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>
@@ -45,7 +50,7 @@ export default async function CategoryPage({
               Categories
             </Link>
             <span className="mx-2">/</span>
-            <span className="text-cream">{category.label}</span>
+            <span aria-current="page" className="text-cream">{category.label}</span>
           </nav>
           <h1 className="font-serif text-3xl sm:text-4xl">{category.label}</h1>
           {category.description ? (

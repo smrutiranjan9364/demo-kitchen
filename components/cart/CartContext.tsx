@@ -3,12 +3,11 @@
 import {
   createContext,
   useContext,
-  useState,
-  useEffect,
   useCallback,
   useMemo,
 } from "react";
 import type { Product } from "@/data/products";
+import { useLocalStorageState } from "@/components/useLocalStorageState";
 
 export type CartLine = Product & { qty: number };
 
@@ -23,28 +22,10 @@ type CartContextValue = {
 
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "rk_cart";
+const EMPTY_CART: CartLine[] = [];
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [lines, setLines] = useState<CartLine[]>([]);
-
-  // Load persisted cart once on mount.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setLines(JSON.parse(raw));
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  // Persist on change.
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
-    } catch {
-      /* ignore */
-    }
-  }, [lines]);
+  const [lines, setLines] = useLocalStorageState(STORAGE_KEY, EMPTY_CART);
 
   const setQty = useCallback((product: Product, qty: number) => {
     setLines((prev) => {
@@ -52,7 +33,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (qty > 0) next.push({ ...product, qty });
       return next;
     });
-  }, []);
+  }, [setLines]);
 
   const add = useCallback((product: Product) => {
     setLines((prev) => {
@@ -64,11 +45,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...product, qty: 1 }];
     });
-  }, []);
+  }, [setLines]);
 
   const remove = useCallback((id: string) => {
     setLines((prev) => prev.filter((l) => l.id !== id));
-  }, []);
+  }, [setLines]);
 
   const qtyOf = useCallback(
     (id: string) => lines.find((l) => l.id === id)?.qty ?? 0,

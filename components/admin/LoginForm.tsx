@@ -46,7 +46,7 @@ export default function LoginForm() {
         src={BG_IMAGE}
         alt=""
         fill
-        priority
+        loading="eager"
         sizes="100vw"
         className="object-cover"
       />

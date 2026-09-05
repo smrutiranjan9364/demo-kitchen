@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { routeMetadata } from "@/lib/seo";
 import Link from "next/link";
 import CheckoutClient from "@/components/checkout/CheckoutClient";
 import { BEST_SELLERS } from "@/data/products";
@@ -6,10 +6,7 @@ import { BEST_SELLERS } from "@/data/products";
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Checkout — Odia Kitchen",
-  description: "Complete your order at Odia Kitchen.",
-};
+export const metadata = routeMetadata("/checkout");
 
 // Sample order (replace with real cart state / store).
 const items = [
@@ -24,7 +21,7 @@ export default function CheckoutPage() {
       {/* Page header */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>

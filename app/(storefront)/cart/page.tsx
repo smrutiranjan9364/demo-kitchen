@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { routeMetadata } from "@/lib/seo";
 import Link from "next/link";
 import CartClient from "@/components/cart/CartClient";
 import { BEST_SELLERS } from "@/data/products";
@@ -6,10 +6,7 @@ import { BEST_SELLERS } from "@/data/products";
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Cart — Odia Kitchen",
-  description: "Review the items in your cart at Odia Kitchen.",
-};
+export const metadata = routeMetadata("/cart");
 
 // Sample items to demo the cart (replace with real cart state / store).
 const initialItems = [
@@ -24,7 +21,7 @@ export default function CartPage() {
       {/* Page header */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>

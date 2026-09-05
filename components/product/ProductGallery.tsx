@@ -51,7 +51,7 @@ export default function ProductGallery({
               src={image}
               alt=""
               fill
-              sizes="80px"
+              sizes="(min-width: 640px) 80px, 64px"
               className={`object-cover ${view.className}`}
             />
           </button>
@@ -64,8 +64,9 @@ export default function ProductGallery({
           src={image}
           alt={alt}
           fill
-          sizes="(max-width: 1024px) 100vw, 45vw"
-          priority
+          sizes="(min-width: 1280px) 500px, (min-width: 1024px) calc(50vw - 140px), (min-width: 640px) calc(100vw - 144px), calc(100vw - 32px)"
+          loading="eager"
+          fetchPriority="high"
           className={`object-cover transition-transform duration-300 group-hover:scale-105 ${VIEWS[active].className}`}
         />
         {discount ? (

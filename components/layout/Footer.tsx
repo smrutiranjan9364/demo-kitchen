@@ -7,13 +7,17 @@ export default function Footer() {
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-14 md:grid-cols-3">
         {/* Menu */}
         <div>
-          <h3 className="mb-5 font-serif text-lg">Menu</h3>
+          <h2 className="mb-5 font-serif text-lg">Menu</h2>
           <ul className="space-y-2.5 text-xs tracking-wide text-cream/80">
             {FOOTER_MENU.map((item) => (
               <li key={item.label}>
-                <Link href={item.href} className="hover:text-white">
-                  {item.label}
-                </Link>
+                {item.href ? (
+                  <Link href={item.href} className="hover:text-white">
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className="hover:text-white">{item.label}</span>
+                )}
               </li>
             ))}
           </ul>
@@ -21,7 +25,7 @@ export default function Footer() {
 
         {/* Contacts */}
         <div>
-          <h3 className="mb-5 font-serif text-lg">Contacts</h3>
+          <h2 className="mb-5 font-serif text-lg">Contacts</h2>
           <ul className="space-y-2.5 text-sm text-cream/80">
             <li>
               <a href={`mailto:${CONTACT.email}`} className="underline hover:text-white">
@@ -35,7 +39,7 @@ export default function Footer() {
             </li>
           </ul>
 
-          <h3 className="mt-8 mb-4 font-serif text-lg">Socials</h3>
+          <h2 className="mt-8 mb-4 font-serif text-lg">Socials</h2>
           <div className="flex gap-4 text-cream/80">
             <Social label="Facebook" href="#" path="M13 10h3l1-4h-4V4a1 1 0 0 1 1-1h3V-.5" />
             <Social label="Instagram" href="#" instagram />
@@ -45,7 +49,7 @@ export default function Footer() {
 
         {/* Newsletter */}
         <div>
-          <h3 className="mb-5 font-serif text-lg">Subscribe to our newsletter</h3>
+          <h2 className="mb-5 font-serif text-lg">Subscribe to our newsletter</h2>
           <form className="space-y-3">
             <div>
               <label htmlFor="newsletter-email" className="mb-1 block text-xs text-cream/80">
@@ -73,10 +77,12 @@ export default function Footer() {
         <div className="mx-auto max-w-7xl px-6 py-6 text-center text-xs text-cream/70">
           <p>© 2024 Odia Kitchen. All rights reserved. Crafted with heritage.</p>
           <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
-            {FOOTER_LEGAL.map((item) => (
+            {FOOTER_LEGAL.map((item) => item.href ? (
               <Link key={item.label} href={item.href} className="hover:text-white">
                 {item.label}
               </Link>
+            ) : (
+              <span key={item.label} className="hover:text-white">{item.label}</span>
             ))}
           </div>
         </div>

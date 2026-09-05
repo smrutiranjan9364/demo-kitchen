@@ -100,8 +100,8 @@ export default function ShopClient({
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
+          {filtered.map((product, index) => (
+            <ProductCard key={product.id} product={product} eager={index === 0} />
           ))}
         </div>
       )}

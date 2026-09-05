@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import { FESTIVAL_FOODS } from "@/data/products";
+import type { FestivalFood as FestivalFoodItem } from "@/lib/store";
 
-export default function FestivalFood() {
+export default function FestivalFood({ foods = FESTIVAL_FOODS }: { foods?: FestivalFoodItem[] }) {
   return (
     <section className="bg-cream-soft">
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
@@ -20,10 +21,11 @@ export default function FestivalFood() {
 
         {/* Grid */}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {FESTIVAL_FOODS.map((item) => (
+          {foods.map((item) => (
             <Link
               key={item.id}
-              href={`/festival/${item.id}`}
+              href="/festival"
+              aria-label={`Explore ${item.name} for ${item.festival}`}
               className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-lg"
             >
               {/* Image */}
@@ -32,7 +34,7 @@ export default function FestivalFood() {
                   src={item.image}
                   alt={item.name}
                   fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  sizes="(min-width: 1280px) 293px, (min-width: 1024px) calc(25vw - 27px), (min-width: 640px) calc(50vw - 34px), calc(100vw - 32px)"
                   className="object-cover transition duration-500 group-hover:scale-105"
                 />
                 <span className="absolute left-3 top-3 rounded-full bg-brand px-2.5 py-1 text-[10px] font-semibold tracking-wide text-cream shadow">

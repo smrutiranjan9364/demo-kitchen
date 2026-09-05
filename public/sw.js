@@ -1,10 +1,7 @@
-// Rosy's Kitchen — service worker
-// Bump CACHE_VERSION to invalidate old caches on deploy.
-const CACHE_VERSION = "v1";
-const CACHE_NAME = `rosys-kitchen-${CACHE_VERSION}`;
+// Bump this version when changing the offline shell or its icons.
+const CACHE_PREFIX = "rosys-kitchen-";
+const CACHE_NAME = `${CACHE_PREFIX}v2`;
 const OFFLINE_URL = "/offline";
-
-// Core assets pre-cached on install so the app shell works offline.
 const PRECACHE_URLS = [
   OFFLINE_URL,
   "/icon-192.png",
@@ -18,7 +15,7 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -29,53 +26,80 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME)
-            .map((key) => caches.delete(key))
-        )
+            .filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME)
+            .map((key) => caches.delete(key)),
+        ),
       )
-      .then(() => self.clients.claim())
+      .then(() => self.clients.claim()),
   );
 });
 
+function canStore(response) {
+  return (
+    response.status === 200 &&
+    !response.redirected &&
+    response.type === "basic" &&
+    !/\b(?:private|no-store)\b/i.test(response.headers.get("cache-control") || "")
+  );
+}
+
+function saveResponse(event, request, response) {
+  const copy = response.clone();
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.put(request, copy)).catch(() => {}),
+  );
+}
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-
-  // Only handle same-origin GET requests.
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
-  // Never cache API / auth / server-action traffic — always go to network.
-  if (url.pathname.startsWith("/api")) return;
+  // Let Next.js manage API responses and its RSC/router cache. Treating these
+  // as static files can replay stale content and metadata after admin edits.
+  if (
+    /^\/api(?:\/|$)/.test(url.pathname) ||
+    request.headers.has("rsc") ||
+    request.headers.has("next-router-prefetch") ||
+    url.searchParams.has("_rsc")
+  ) return;
 
-  // Navigations: network-first, fall back to cache, then offline page.
   if (request.mode === "navigate") {
+    const privateRoute = /^\/(?:backend|cart|checkout|auth|login|register|search)(?:\/|$)/.test(url.pathname);
+    const publicDocument = !privateRoute && !url.search;
+
+    // Refresh documents on every navigation. Never retain private pages,
+    // query variants, errors, redirects, or responses marked no-store.
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          if (publicDocument && canStore(response)) {
+            saveResponse(event, request, response);
+          }
           return response;
         })
         .catch(async () => {
-          const cached = await caches.match(request);
-          return cached || caches.match(OFFLINE_URL);
-        })
+          const cached = publicDocument ? await caches.match(request) : undefined;
+          return cached || (await caches.match(OFFLINE_URL)) || Response.error();
+        }),
     );
     return;
   }
 
-  // Static assets: cache-first, then network (and cache the result).
+  // Only immutable framework assets and the versioned offline shell use
+  // cache-first. Image optimization and SEO endpoints keep their HTTP policy.
+  const immutableAsset = url.pathname.startsWith("/_next/static/");
+  const shellAsset = !url.search && PRECACHE_URLS.includes(url.pathname);
+  if (!immutableAsset && !shellAsset) return;
+
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
-        if (response && response.status === 200 && response.type === "basic") {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
+        if (canStore(response)) saveResponse(event, request, response);
         return response;
       });
-    })
+    }),
   );
 });

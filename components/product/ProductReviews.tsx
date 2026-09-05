@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { Review } from "@/data/products";
+import { useLocalStorageState } from "@/components/useLocalStorageState";
 
 type UserReview = Review & { id: string };
+const EMPTY_REVIEWS: UserReview[] = [];
 
 function Stars({ rating, className = "" }: { rating: number; className?: string }) {
   return (
@@ -61,35 +63,13 @@ export default function ProductReviews({
   sampleReviews: Review[];
 }) {
   const storageKey = `reviews:${productId}`;
-  const [userReviews, setUserReviews] = useState<UserReview[]>([]);
-  const [hydrated, setHydrated] = useState(false);
+  const [userReviews, setUserReviews] = useLocalStorageState(storageKey, EMPTY_REVIEWS);
 
   // Form state
   const [name, setName] = useState("");
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
-
-  // Load saved reviews for this product.
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(storageKey);
-      if (raw) setUserReviews(JSON.parse(raw));
-    } catch {
-      /* ignore unavailable/corrupt storage */
-    }
-    setHydrated(true);
-  }, [storageKey]);
-
-  // Persist whenever the list changes (after initial load).
-  useEffect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(storageKey, JSON.stringify(userReviews));
-    } catch {
-      /* ignore */
-    }
-  }, [userReviews, hydrated, storageKey]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();

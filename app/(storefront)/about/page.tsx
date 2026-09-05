@@ -1,15 +1,12 @@
-import type { Metadata } from "next";
+import { routeMetadata, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import Image from "next/image";
 
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "About Us — Odia Kitchen",
-  description:
-    "The story behind Odia Kitchen — bringing authentic Odisha flavours to homes everywhere.",
-};
+export const metadata = routeMetadata("/about");
 
 const aboutImg = (id: string) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=900&q=80`;
@@ -31,10 +28,11 @@ const STATS = [
 export default function AboutPage() {
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={seoPage("/about")} />
       {/* Hero */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>
@@ -64,7 +62,7 @@ export default function AboutPage() {
             />
           </div>
           <div>
-            <h2 className="font-serif text-2xl text-gray-900">Our story</h2>
+            <h2 id="sourcing" className="font-serif text-2xl text-gray-900">Our story</h2>
             <div className="mt-4 space-y-4 text-sm leading-relaxed text-gray-600">
               <p>
                 What started in a small home kitchen — with Rosy preparing khaja and

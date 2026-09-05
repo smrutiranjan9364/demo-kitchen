@@ -49,7 +49,7 @@ export default function CategoryGrid({ categories }: { categories: Category[] })
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {filtered.map((cat) => (
+          {filtered.map((cat, index) => (
             <Link
               key={cat.label}
               href={cat.href}
@@ -60,7 +60,9 @@ export default function CategoryGrid({ categories }: { categories: Category[] })
                   src={cat.image}
                   alt={cat.label}
                   fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  sizes="(min-width: 1280px) 290px, (min-width: 1024px) calc(25vw - 30px), (min-width: 640px) calc(50vw - 36px), calc(100vw - 32px)"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  fetchPriority={index === 0 ? "high" : undefined}
                   className="object-cover transition duration-500 group-hover:scale-105"
                 />
                 {cat.count ? (

@@ -40,6 +40,7 @@ export default async function Header() {
               <SearchIcon className="h-4 w-4 text-gray-400" />
               <input
                 type="search"
+                aria-label="Search products"
                 placeholder="Search for snacks, sweets, spices and more..."
                 className="w-full bg-transparent outline-none placeholder:text-gray-400"
               />
@@ -82,6 +83,7 @@ export default async function Header() {
             <SearchIcon className="h-4 w-4 text-gray-400" />
             <input
               type="search"
+              aria-label="Search products"
               placeholder="Search snacks, sweets, spices..."
               className="w-full bg-transparent outline-none placeholder:text-gray-400"
             />
@@ -90,7 +92,7 @@ export default async function Header() {
       </div>
 
       {/* Category nav (desktop) */}
-      <nav className="hidden border-b border-brand/10 bg-cream-soft md:block">
+      <nav aria-label="Main navigation" className="hidden border-b border-brand/10 bg-cream-soft md:block">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-1.5 px-4 py-2 sm:px-6">
           {NAV_CATEGORIES.map((item) => {
             const isPrimary = item.icon === "grid";

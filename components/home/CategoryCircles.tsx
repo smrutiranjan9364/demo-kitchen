@@ -25,6 +25,8 @@ export default async function CategoryCircles() {
               key={`${cat.label}-${i}`}
               href={cat.href}
               aria-hidden={i >= categories.length}
+              tabIndex={i >= categories.length ? -1 : undefined}
+              prefetch={i >= categories.length ? false : undefined}
               className="group/item flex shrink-0 flex-col items-center gap-3 px-6"
             >
               <span className="relative h-24 w-24 overflow-hidden rounded-2xl bg-cream-soft p-2 shadow-sm ring-1 ring-black/5 transition duration-300 group-hover/item:-translate-y-1 group-hover/item:shadow-lg group-hover/item:ring-2 group-hover/item:ring-brand">
@@ -33,7 +35,7 @@ export default async function CategoryCircles() {
                     src={cat.image}
                     alt={cat.label}
                     fill
-                    sizes="96px"
+                    sizes="80px"
                     className="object-cover"
                   />
                 </span>

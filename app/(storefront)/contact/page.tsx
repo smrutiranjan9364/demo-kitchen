@@ -1,4 +1,5 @@
-import type { Metadata } from "next";
+import { routeMetadata, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import ContactForm from "@/components/contact/ContactForm";
 import { CONTACT } from "@/data/site";
@@ -6,10 +7,7 @@ import { CONTACT } from "@/data/site";
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Contact — Odia Kitchen",
-  description: "Get in touch with Odia Kitchen — questions, orders and feedback.",
-};
+export const metadata = routeMetadata("/contact");
 
 const DETAILS = [
   { icon: "✉️", label: "Email", value: CONTACT.email, href: `mailto:${CONTACT.email}` },
@@ -21,10 +19,11 @@ const DETAILS = [
 export default function ContactPage() {
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={seoPage("/contact")} />
       {/* Hero */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>

@@ -8,10 +8,12 @@
 //
 // The exported function names and signatures are unchanged from the previous
 // file-backed implementation, so no callers needed to change.
+import { cache } from "react";
 import { sql } from "@/lib/db";
 import {
+  BEST_SELLERS,
+  TOP_DEALS,
   CATALOG_PRODUCTS,
-  getProductById as staticGetProductById,
   type Product,
 } from "@/data/products";
 import {
@@ -66,32 +68,36 @@ function toProduct(r: ProductRow): AdminProduct {
   };
 }
 
-export async function getProducts(): Promise<AdminProduct[]> {
+// React.cache shares reads between metadata, layouts and pages within one
+// request. It never keeps inventory or prices stale across requests.
+export const getProducts = cache(async (): Promise<AdminProduct[]> => {
   const rows = await sql<ProductRow[]>`SELECT * FROM products ORDER BY name`;
   return rows.map(toProduct);
-}
+});
 
-export async function getProduct(id: string): Promise<AdminProduct | undefined> {
+export const getProduct = cache(async (id: string): Promise<AdminProduct | undefined> => {
   const rows = await sql<ProductRow[]>`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
   if (rows[0]) return toProduct(rows[0]);
   // Fall back to curated static items (best-sellers / deals) whose detail
   // pages are linked by their own ids and aren't part of the editable set.
-  return staticGetProductById(id);
-}
+  // A deleted DB catalog item must stay deleted. Only the explicitly curated
+  // homepage/deal products exist independently of the editable DB catalog.
+  return [...BEST_SELLERS, ...TOP_DEALS].find((product) => product.id === id);
+});
 
-export async function getProductsByCategory(slug: string): Promise<AdminProduct[]> {
+export const getProductsByCategory = cache(async (slug: string): Promise<AdminProduct[]> => {
   const rows = await sql<ProductRow[]>`
     SELECT * FROM products WHERE category = ${slug} ORDER BY name`;
   return rows.map(toProduct);
-}
+});
 
-export async function getProductsByDistrict(slug: string): Promise<AdminProduct[]> {
+export const getProductsByDistrict = cache(async (slug: string): Promise<AdminProduct[]> => {
   const rows = await sql<ProductRow[]>`
     SELECT * FROM products WHERE district = ${slug} ORDER BY name`;
   return rows.map(toProduct);
-}
+});
 
-export async function getRelated(product: AdminProduct, limit = 4): Promise<AdminProduct[]> {
+export const getRelated = cache(async (product: AdminProduct, limit = 4): Promise<AdminProduct[]> => {
   if (!product.category) return [];
   const rows = await sql<ProductRow[]>`
     SELECT * FROM products
@@ -99,7 +105,7 @@ export async function getRelated(product: AdminProduct, limit = 4): Promise<Admi
     ORDER BY name
     LIMIT ${limit}`;
   return rows.map(toProduct);
-}
+});
 
 export type ProductInput = {
   name: string;
@@ -307,7 +313,7 @@ const DEFAULT_CATEGORY_IMAGE =
   "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg";
 
 // Returns categories in the frontend `Category` shape, with a live product count.
-export async function getCategories(): Promise<Category[]> {
+export const getCategories = cache(async (): Promise<Category[]> => {
   const rows = await sql<(CategoryRow & { count: number })[]>`
     SELECT c.slug, c.label, c.image, c.description,
            count(p.id)::int AS count
@@ -322,11 +328,11 @@ export async function getCategories(): Promise<Category[]> {
     description: c.description ?? undefined,
     count: c.count,
   }));
-}
+});
 
-export async function getCategory(slug: string): Promise<Category | undefined> {
+export const getCategory = cache(async (slug: string): Promise<Category | undefined> => {
   return (await getCategories()).find((c) => c.href === `/category/${slug}`);
-}
+});
 
 export type CategoryInput = {
   label: string;
@@ -410,16 +416,16 @@ function toDistrict(r: DistrictRow): AdminDistrict {
   };
 }
 
-export async function getDistricts(): Promise<AdminDistrict[]> {
+export const getDistricts = cache(async (): Promise<AdminDistrict[]> => {
   const rows = await sql<DistrictRow[]>`
     SELECT * FROM districts ORDER BY sort_order, name`;
   return rows.map(toDistrict);
-}
+});
 
-export async function getDistrict(slug: string): Promise<AdminDistrict | undefined> {
+export const getDistrict = cache(async (slug: string): Promise<AdminDistrict | undefined> => {
   const rows = await sql<DistrictRow[]>`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
   return rows[0] ? toDistrict(rows[0]) : undefined;
-}
+});
 
 export type DistrictInput = {
   name: string;
@@ -473,7 +479,7 @@ export async function deleteDistrict(slug: string): Promise<boolean> {
 
 // Nav-shaped list for the storefront header/mobile menus. Falls back to the
 // static seed list if the table is empty or unreachable.
-export async function getDistrictNav(): Promise<District[]> {
+export const getDistrictNav = cache(async (): Promise<District[]> => {
   try {
     const rows = await getDistricts();
     if (rows.length > 0) {
@@ -483,7 +489,7 @@ export async function getDistrictNav(): Promise<District[]> {
     /* fall through to static list */
   }
   return STATIC_DISTRICTS;
-}
+});
 
 /* ------------------------------ Admins ------------------------------ */
 
@@ -595,15 +601,15 @@ function toFestival(r: FestivalRow): FestivalFood {
   };
 }
 
-export async function getFestivalFoods(): Promise<FestivalFood[]> {
+export const getFestivalFoods = cache(async (): Promise<FestivalFood[]> => {
   const rows = await sql<FestivalRow[]>`SELECT * FROM festival_foods ORDER BY name`;
   return rows.map(toFestival);
-}
+});
 
-export async function getFestivalFood(id: string): Promise<FestivalFood | undefined> {
+export const getFestivalFood = cache(async (id: string): Promise<FestivalFood | undefined> => {
   const rows = await sql<FestivalRow[]>`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
   return rows[0] ? toFestival(rows[0]) : undefined;
-}
+});
 
 export type FestivalInput = {
   name: string;

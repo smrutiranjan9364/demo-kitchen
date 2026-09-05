@@ -29,7 +29,7 @@ export default function BrandLogo({
       alt="Odia Kitchen"
       width={width}
       height={height}
-      priority={priority}
+      loading={priority ? "eager" : "lazy"}
       className={imgClassName}
       onError={() => setFailed(true)}
     />

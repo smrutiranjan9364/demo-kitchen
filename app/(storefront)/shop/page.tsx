@@ -1,12 +1,14 @@
-import type { Metadata } from "next";
+import { createMetadata, isSearchVariant, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import ShopClient from "@/components/shop/ShopClient";
 import { getProducts, getCategories } from "@/lib/store";
 
-export const metadata: Metadata = {
-  title: "Shop — Odia Kitchen",
-  description: "Browse and shop all authentic Odisha food products at Odia Kitchen.",
-};
+export async function generateMetadata({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return createMetadata({ ...seoPage("/shop"), noindex: isSearchVariant(await searchParams) });
+}
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +16,11 @@ export default async function ShopPage() {
   const [products, categories] = await Promise.all([getProducts(), getCategories()]);
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={seoPage("/shop")} />
       {/* Page header */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>

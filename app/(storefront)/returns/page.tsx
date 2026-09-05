@@ -1,16 +1,16 @@
-import type { Metadata } from "next";
+import { routeMetadata, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import LegalPage from "@/components/legal/LegalPage";
 
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Return & Refund Policy — Odia Kitchen",
-  description: "Our return, replacement and refund policy at Odia Kitchen.",
-};
+export const metadata = routeMetadata("/returns");
 
 export default function ReturnsPage() {
   return (
+    <>
+      <PageJsonLd page={seoPage("/returns")} />
     <LegalPage
       title="Return & Refund Policy"
       updated="1 September 2026"
@@ -58,5 +58,6 @@ export default function ReturnsPage() {
         },
       ]}
     />
+    </>
   );
 }

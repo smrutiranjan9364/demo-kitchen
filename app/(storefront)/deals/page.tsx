@@ -1,25 +1,25 @@
-import type { Metadata } from "next";
+import { routeMetadata, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import ProductCard from "@/components/home/ProductCard";
-import { TOP_DEALS } from "@/data/products";
+import { getFeaturedProducts } from "@/lib/catalog";
 
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Deals — Odia Kitchen",
-  description: "Grab the best offers on authentic Odisha food at Odia Kitchen.",
-};
+export const metadata = routeMetadata("/deals");
 
-export default function DealsPage() {
-  const maxDiscount = Math.max(...TOP_DEALS.map((d) => d.discount ?? 0));
+export default async function DealsPage() {
+  const { topDeals } = await getFeaturedProducts();
+  const maxDiscount = Math.max(0, ...topDeals.map((d) => d.discount ?? 0));
 
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={seoPage("/deals")} />
       {/* Hero */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>
@@ -48,10 +48,10 @@ export default function DealsPage() {
       {/* Deals grid */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
         <p className="mb-6 text-sm text-gray-500">
-          {TOP_DEALS.length} {TOP_DEALS.length === 1 ? "deal" : "deals"} available
+          {topDeals.length} {topDeals.length === 1 ? "deal" : "deals"} available
         </p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {TOP_DEALS.map((product) => (
+          {topDeals.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

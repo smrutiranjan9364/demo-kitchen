@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import ProductCard from "@/components/home/ProductCard";
 import ProductActions from "@/components/product/ProductActions";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductReviews from "@/components/product/ProductReviews";
 import { productDescription, SAMPLE_REVIEWS } from "@/data/products";
-import { getProduct, getRelated, getCategory } from "@/lib/store";
+import { getProductPageData } from "@/lib/catalog";
+import { createMetadata } from "@/lib/seo";
+import { productSeo } from "@/lib/catalog-seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +19,10 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = await getProduct(id);
-  if (!product) return { title: "Product not found — Odia Kitchen" };
-  return {
-    title: `${product.name} — Odia Kitchen`,
-    description: productDescription(product),
-  };
+  const data = await getProductPageData(id);
+  if (!data) notFound();
+  if (data.canonicalId !== id) permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
+  return createMetadata(productSeo(data.product));
 }
 
 function Stars({ rating, className = "" }: { rating: number; className?: string }) {
@@ -42,17 +43,22 @@ export default async function ProductDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = await getProduct(id);
-  if (!product) notFound();
-
-  const category = product.category ? await getCategory(product.category) : undefined;
-  const related = await getRelated(product);
+  const data = await getProductPageData(id);
+  if (!data) notFound();
+  if (data.canonicalId !== id) permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
+  const { product, category, related } = data;
+  const page = productSeo(product);
 
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={page} product={product} breadcrumbs={[
+        { name: "Home", path: "/" },
+        ...(category ? [{ name: category.label, path: category.href }] : []),
+        { name: product.name, path: page.path },
+      ]} />
       {/* Breadcrumb */}
       <div className="border-b border-black/5 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-4 text-xs text-gray-500 sm:px-6">
+        <nav aria-label="Breadcrumb" className="mx-auto max-w-7xl px-4 py-4 text-xs text-gray-500 sm:px-6">
           <Link href="/" className="hover:text-brand">
             Home
           </Link>
@@ -65,8 +71,8 @@ export default async function ProductDetailPage({
               <span className="mx-2">/</span>
             </>
           ) : null}
-          <span className="text-gray-800">{product.name}</span>
-        </div>
+          <span aria-current="page" className="text-gray-800">{product.name}</span>
+        </nav>
       </div>
 
       {/* Detail */}
@@ -138,7 +144,7 @@ export default async function ProductDetailPage({
             <h2 className="mb-6 font-serif text-2xl text-gray-900">You may also like</h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {related.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard key={p.id} product={p} headingLevel={3} />
               ))}
             </div>
           </section>

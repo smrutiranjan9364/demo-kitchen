@@ -1,16 +1,16 @@
-import type { Metadata } from "next";
+import { routeMetadata, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import LegalPage from "@/components/legal/LegalPage";
 
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy — Odia Kitchen",
-  description: "How Odia Kitchen collects, uses and protects your personal data.",
-};
+export const metadata = routeMetadata("/privacy");
 
 export default function PrivacyPage() {
   return (
+    <>
+      <PageJsonLd page={seoPage("/privacy")} />
     <LegalPage
       title="Privacy Policy"
       updated="1 September 2026"
@@ -63,5 +63,6 @@ export default function PrivacyPage() {
         },
       ]}
     />
+    </>
   );
 }

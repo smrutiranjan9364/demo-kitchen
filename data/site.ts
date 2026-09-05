@@ -181,25 +181,27 @@ export const categorySlug = (c: Category) => c.href.replace("/category/", "");
 export const getCategoryBySlug = (slug: string) =>
   CATEGORIES.find((c) => categorySlug(c) === slug);
 
-export const FOOTER_MENU = [
+export type FooterLink = { label: string; href?: string };
+
+export const FOOTER_MENU: FooterLink[] = [
   { label: "HOME", href: "/" },
-  { label: "MENU", href: "/menu" },
+  { label: "MENU", href: "/categories" },
   { label: "SHOP", href: "/shop" },
-  { label: "ORDERS", href: "/orders" },
+  { label: "ORDERS" },
   { label: "CART", href: "/cart" },
-  { label: "GALLERY", href: "/gallery" },
+  { label: "GALLERY" },
   { label: "CONTACT", href: "/contact" },
-  { label: "COMPLAINT", href: "/complaint" },
+  { label: "COMPLAINT", href: "/contact" },
 ];
 
-export const FOOTER_LEGAL = [
+export const FOOTER_LEGAL: FooterLink[] = [
   { label: "About Us", href: "/about" },
   { label: "Terms of Service", href: "/terms" },
   { label: "Return Policy", href: "/returns" },
-  { label: "Sourcing", href: "/sourcing" },
-  { label: "Gift Cards", href: "/gift-cards" },
-  { label: "FAQ", href: "/faq" },
-  { label: "Accessibility", href: "/accessibility" },
+  { label: "Sourcing", href: "/about#sourcing" },
+  { label: "Gift Cards" },
+  { label: "FAQ" },
+  { label: "Accessibility" },
 ];
 
 export const CONTACT = {

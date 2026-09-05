@@ -4,6 +4,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { ADMIN_COOKIE } from "@/lib/auth";
+import { getSeoConfig, SEARCH_PARAMETERS } from "@/lib/seo";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,9 +18,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/backend", request.url));
   }
 
-  return NextResponse.next();
+  const response = NextResponse.next();
+  const searchVariant = ["/shop", "/categories", "/festival"].includes(pathname) &&
+    Array.from(request.nextUrl.searchParams.keys()).some((key) => SEARCH_PARAMETERS.has(key.toLowerCase()));
+  if (!getSeoConfig().indexable || pathname.startsWith("/backend") || searchVariant) {
+    response.headers.set("X-Robots-Tag", "noindex, follow");
+  }
+  return response;
 }
 
 export const config = {
-  matcher: ["/backend/:path*"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.png|apple-icon.png|icon-|logo|sw.js|social-image).*)"],
 };

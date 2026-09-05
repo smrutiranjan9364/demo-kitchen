@@ -1,17 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import Image from "next/image";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
+function getInstallState() {
+  const standalone = window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  const ios = /ipad|iphone|ipod/.test(window.navigator.userAgent.toLowerCase()) &&
+    !("MSStream" in window);
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem("pwa-install-dismissed") === "1";
+  } catch {
+    // The prompt also keeps dismissal state in memory.
+  }
+  return (standalone ? 1 : 0) | (ios ? 2 : 0) | (dismissed ? 4 : 0);
+}
+
+function subscribeInstallState(notify: () => void) {
+  const displayMode = window.matchMedia("(display-mode: standalone)");
+  displayMode.addEventListener("change", notify);
+  window.addEventListener("storage", notify);
+  window.addEventListener("appinstalled", notify);
+  return () => {
+    displayMode.removeEventListener("change", notify);
+    window.removeEventListener("storage", notify);
+    window.removeEventListener("appinstalled", notify);
+  };
+}
+
+const serverInstallState = () => 0;
+
 export default function PWA() {
   const [installEvent, setInstallEvent] =
     useState<BeforeInstallPromptEvent | null>(null);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
+  const installState = useSyncExternalStore(subscribeInstallState, getInstallState, serverInstallState);
+  const isStandalone = Boolean(installState & 1);
+  const isIOS = Boolean(installState & 2);
   const [dismissed, setDismissed] = useState(false);
 
   // Register the service worker.
@@ -29,28 +59,17 @@ export default function PWA() {
 
   // Detect install state and capture the install prompt.
   useEffect(() => {
-    setIsStandalone(
-      window.matchMedia("(display-mode: standalone)").matches ||
-        // iOS Safari
-        (window.navigator as unknown as { standalone?: boolean }).standalone ===
-          true
-    );
-    setIsIOS(
-      /ipad|iphone|ipod/.test(window.navigator.userAgent.toLowerCase()) &&
-        !("MSStream" in window)
-    );
-    try {
-      setDismissed(localStorage.getItem("pwa-install-dismissed") === "1");
-    } catch {}
-
     const onBeforeInstall = (e: Event) => {
       e.preventDefault();
       setInstallEvent(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
-    window.addEventListener("appinstalled", () => setInstallEvent(null));
-    return () =>
+    const onInstalled = () => setInstallEvent(null);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   const dismiss = () => {
@@ -68,13 +87,13 @@ export default function PWA() {
   };
 
   // Nothing to show if already installed, dismissed, or no prompt available.
-  if (isStandalone || dismissed) return null;
+  if (isStandalone || dismissed || Boolean(installState & 4)) return null;
   if (!installEvent && !isIOS) return null;
 
   return (
     <div className="fixed inset-x-3 bottom-3 z-50 mx-auto max-w-md rounded-2xl border border-[#6d2440]/15 bg-white p-4 shadow-xl">
       <div className="flex items-start gap-3">
-        <img
+        <Image
           src="/icon-192.png"
           alt="Rosy's Kitchen"
           width={44}

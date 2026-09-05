@@ -1,13 +1,14 @@
-import type { Metadata } from "next";
+import { createMetadata, isSearchVariant, seoPage } from "@/lib/seo";
+import { PageJsonLd } from "@/components/seo/JsonLd";
 import Link from "next/link";
 import { getFestivalFoods } from "@/lib/store";
 import FestivalTabs from "@/components/festival/FestivalTabs";
 
-export const metadata: Metadata = {
-  title: "Festival Menu — Odia Kitchen",
-  description:
-    "Handmade delicacies for Odisha's most cherished festivals, prepared fresh with tradition.",
-};
+export async function generateMetadata({ searchParams }: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  return createMetadata({ ...seoPage("/festival"), noindex: isSearchVariant(await searchParams) });
+}
 
 export const dynamic = "force-dynamic";
 
@@ -15,10 +16,11 @@ export default async function FestivalPage() {
   const festivalFoods = await getFestivalFoods();
   return (
     <div className="bg-cream-soft">
+      <PageJsonLd page={seoPage("/festival")} />
       {/* Hero */}
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-          <nav className="mb-3 text-xs text-cream/70">
+          <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
             <Link href="/" className="hover:text-white">
               Home
             </Link>

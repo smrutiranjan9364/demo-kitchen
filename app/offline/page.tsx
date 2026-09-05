@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
+import { routeMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "You're offline — Rosy's Kitchen",
-};
+export const metadata = routeMetadata("/offline");
 
 export default function OfflinePage() {
   return (
@@ -22,6 +20,8 @@ export default function OfflinePage() {
         We can&apos;t reach the kitchen right now. Check your internet
         connection and try again — recently viewed pages may still work.
       </p>
+      {/* A full navigation retries the network after an offline response. */}
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/"
         className="mt-6 rounded-lg bg-[#6d2440] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#4f1a2e]"

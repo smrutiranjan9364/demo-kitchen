@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { usePathname, useRouter } from "next/navigation";
@@ -18,6 +18,30 @@ type NavItem = {
   right?: Right;
 };
 type NavSection = { label?: string; items: NavItem[] };
+
+const SIDEBAR_STORAGE_KEY = "admin_sidebar_collapsed";
+const SIDEBAR_CHANGE_EVENT = "admin-sidebar-change";
+let fallbackCollapsed: boolean | null = null;
+
+function getSidebarPreference() {
+  if (fallbackCollapsed !== null) return fallbackCollapsed;
+  try {
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function subscribeToSidebarPreference(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(SIDEBAR_CHANGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(SIDEBAR_CHANGE_EVENT, onChange);
+  };
+}
+
+const getServerSidebarPreference = () => false;
 
 const SECTIONS: NavSection[] = [
   {
@@ -71,25 +95,20 @@ export default function AdminShell({
   const pathname = usePathname();
   const router = useRouter();
 
-  const [collapsed, setCollapsed] = useState(false);
-  // Restore the collapsed preference on mount.
-  useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem("admin_sidebar_collapsed") === "1");
-    } catch {
-      /* storage unavailable */
-    }
-  }, []);
+  const collapsed = useSyncExternalStore(
+    subscribeToSidebarPreference,
+    getSidebarPreference,
+    getServerSidebarPreference,
+  );
   function toggleCollapsed() {
-    setCollapsed((c) => {
-      const next = !c;
-      try {
-        localStorage.setItem("admin_sidebar_collapsed", next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    const next = !collapsed;
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? "1" : "0");
+      fallbackCollapsed = null;
+    } catch {
+      fallbackCollapsed = next;
+    }
+    window.dispatchEvent(new Event(SIDEBAR_CHANGE_EVENT));
   }
 
   async function logout() {
