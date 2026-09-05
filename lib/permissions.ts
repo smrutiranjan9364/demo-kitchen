@@ -9,6 +9,7 @@ export const RIGHTS = [
   { key: "festival", label: "Festival" },
   { key: "orders", label: "Orders" },
   { key: "reviews", label: "Reviews" },
+  { key: "investments", label: "Investments" },
   { key: "settings", label: "Settings" },
 ] as const;
 

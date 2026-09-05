@@ -8,7 +8,7 @@ import { AdminUIProvider } from "./AdminUI";
 import type { Role } from "@/lib/auth";
 import type { Right } from "@/lib/permissions";
 
-type CountKey = "categories" | "districts" | "products" | "festival" | "orders" | "reviews";
+type CountKey = "categories" | "districts" | "products" | "festival" | "orders" | "reviews" | "investments";
 type NavItem = {
   label: string;
   href: string;
@@ -61,6 +61,12 @@ const SECTIONS: NavSection[] = [
     items: [
       { label: "Orders", href: "/backend/dashboard/orders", icon: "cart", countKey: "orders", right: "orders" },
       { label: "Reviews", href: "/backend/dashboard/reviews", icon: "star", countKey: "reviews", right: "reviews" },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { label: "Investments", href: "/backend/dashboard/investments", icon: "wallet", countKey: "investments", right: "investments" },
     ],
   },
   {
@@ -320,6 +326,7 @@ type IconName =
   | "users"
   | "shield"
   | "gear"
+  | "wallet"
   | "external";
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
@@ -411,6 +418,14 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
         <svg {...p}>
           <circle cx="12" cy="12" r="3" />
           <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z" />
+        </svg>
+      );
+    case "wallet":
+      return (
+        <svg {...p}>
+          <path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v0H5a2 2 0 0 0-2 2Z" />
+          <path d="M3 8h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+          <circle cx="16.5" cy="13.5" r="1.2" fill="currentColor" stroke="none" />
         </svg>
       );
     case "external":

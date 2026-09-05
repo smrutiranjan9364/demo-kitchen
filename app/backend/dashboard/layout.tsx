@@ -7,6 +7,7 @@ import {
   getOrders,
   getReviews,
   getFestivalFoods,
+  getInvestments,
   getUserPermissions,
 } from "@/lib/store";
 import { ALL_RIGHTS } from "@/lib/permissions";
@@ -22,13 +23,14 @@ export default async function DashboardLayout({
   const session = await getSession();
   if (!session) redirect("/backend");
 
-  const [products, categories, districts, orders, reviews, festival, rights] = await Promise.all([
+  const [products, categories, districts, orders, reviews, festival, investments, rights] = await Promise.all([
     getProducts(),
     getCategories(),
     getDistricts(),
     getOrders(),
     getReviews(),
     getFestivalFoods(),
+    getInvestments(),
     session.role === "super"
       ? Promise.resolve(ALL_RIGHTS)
       : getUserPermissions(session.username),
@@ -41,6 +43,7 @@ export default async function DashboardLayout({
     festival: festival.length,
     orders: orders.length,
     reviews: reviews.length,
+    investments: investments.length,
   };
 
   return (

@@ -25,6 +25,20 @@ CREATE TABLE IF NOT EXISTS categories (
   description TEXT
 );
 
+-- Investments / spending ledger: where money is spent, with full details.
+CREATE TABLE IF NOT EXISTS investments (
+  id             TEXT PRIMARY KEY,
+  item           TEXT    NOT NULL,
+  category       TEXT,
+  amount         INTEGER NOT NULL DEFAULT 0,
+  spent_on       TEXT,
+  paid_to        TEXT,
+  payment_method TEXT,
+  notes          TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS investments_created_idx ON investments (created_at DESC);
+
 CREATE TABLE IF NOT EXISTS districts (
   slug        TEXT PRIMARY KEY,
   name        TEXT    NOT NULL,

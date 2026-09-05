@@ -491,6 +491,103 @@ export const getDistrictNav = cache(async (): Promise<District[]> => {
   return STATIC_DISTRICTS;
 });
 
+/* ---------------------------- Investments --------------------------- */
+
+// A spending / investment entry — where money went, with full details.
+// `amount` is whole rupees (₹), matching the products.price convention.
+export type Investment = {
+  id: string;
+  item: string;
+  category?: string;
+  amount: number;
+  spentOn?: string; // ISO date "YYYY-MM-DD"
+  paidTo?: string;
+  paymentMethod?: string;
+  notes?: string;
+  createdAt: string;
+};
+
+type InvestmentRow = {
+  id: string;
+  item: string;
+  category: string | null;
+  amount: number;
+  spent_on: string | null;
+  paid_to: string | null;
+  payment_method: string | null;
+  notes: string | null;
+  created_at: Date;
+};
+
+function toInvestment(r: InvestmentRow): Investment {
+  return {
+    id: r.id,
+    item: r.item,
+    category: r.category ?? undefined,
+    amount: r.amount,
+    spentOn: r.spent_on ?? undefined,
+    paidTo: r.paid_to ?? undefined,
+    paymentMethod: r.payment_method ?? undefined,
+    notes: r.notes ?? undefined,
+    createdAt: r.created_at.toISOString(),
+  };
+}
+
+// Newest spending first (by the date the money was spent, then entry time).
+export const getInvestments = cache(async (): Promise<Investment[]> => {
+  const rows = await sql<InvestmentRow[]>`
+    SELECT * FROM investments ORDER BY spent_on DESC NULLS LAST, created_at DESC`;
+  return rows.map(toInvestment);
+});
+
+export type InvestmentInput = {
+  item: string;
+  category?: string;
+  amount: number;
+  spentOn?: string;
+  paidTo?: string;
+  paymentMethod?: string;
+  notes?: string;
+};
+
+export async function createInvestment(input: InvestmentInput): Promise<Investment> {
+  const id = `inv_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const rows = await sql<InvestmentRow[]>`
+    INSERT INTO investments (id, item, category, amount, spent_on, paid_to, payment_method, notes)
+    VALUES (${id}, ${input.item.trim()}, ${input.category?.trim() || null},
+            ${Math.round(input.amount) || 0}, ${input.spentOn?.trim() || null},
+            ${input.paidTo?.trim() || null}, ${input.paymentMethod?.trim() || null},
+            ${input.notes?.trim() || null})
+    RETURNING *`;
+  return toInvestment(rows[0]);
+}
+
+export async function updateInvestment(
+  id: string,
+  patch: Partial<InvestmentInput>,
+): Promise<Investment | undefined> {
+  const existing = await sql<InvestmentRow[]>`SELECT * FROM investments WHERE id = ${id} LIMIT 1`;
+  if (!existing[0]) return undefined;
+  const cur = existing[0];
+  const rows = await sql<InvestmentRow[]>`
+    UPDATE investments SET
+      item           = ${patch.item?.trim() ?? cur.item},
+      category       = ${patch.category?.trim() ?? cur.category},
+      amount         = ${patch.amount != null ? Math.round(patch.amount) : cur.amount},
+      spent_on       = ${patch.spentOn?.trim() ?? cur.spent_on},
+      paid_to        = ${patch.paidTo?.trim() ?? cur.paid_to},
+      payment_method = ${patch.paymentMethod?.trim() ?? cur.payment_method},
+      notes          = ${patch.notes?.trim() ?? cur.notes}
+    WHERE id = ${id}
+    RETURNING *`;
+  return toInvestment(rows[0]);
+}
+
+export async function deleteInvestment(id: string): Promise<boolean> {
+  const rows = await sql`DELETE FROM investments WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
 /* ------------------------------ Admins ------------------------------ */
 
 // Additional "admin"-role users created by a super admin. Passwords are stored
