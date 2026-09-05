@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCategory, getProductsByCategory, getCategories } from "@/lib/store";
+import { getCategory, getProductsByCategory, getCategories, getDistricts } from "@/lib/store";
 import { requireRight } from "@/lib/guard";
 import ProductsAdmin from "@/components/admin/ProductsAdmin";
 
@@ -16,9 +16,10 @@ export default async function CategoryProductsPage({
   const category = await getCategory(slug);
   if (!category) notFound();
 
-  const [products, categories] = await Promise.all([
+  const [products, categories, districts] = await Promise.all([
     getProductsByCategory(slug),
     getCategories(),
+    getDistricts(),
   ]);
 
   return (
@@ -34,6 +35,7 @@ export default async function CategoryProductsPage({
         <ProductsAdmin
           initialProducts={products}
           categories={categories}
+          districts={districts.map((d) => ({ slug: d.slug, name: d.name }))}
           heading={category.label}
           lockedCategory={slug}
         />

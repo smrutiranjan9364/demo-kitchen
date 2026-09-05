@@ -24,6 +24,12 @@ export const sql =
     max: 5,
     idle_timeout: 20,
     connect_timeout: 10,
+    // Disable prepared statements. Neon's pooled endpoint (PgBouncer in
+    // transaction mode) caches query plans across the pool, so after a schema
+    // change (e.g. adding the products.district column) a cached `SELECT *`
+    // plan throws "cached plan must not change result type". Turning prepare
+    // off avoids that entirely and is required for transaction-mode pooling.
+    prepare: false,
   });
 
 if (process.env.NODE_ENV !== "production") globalForDb.sql = sql;

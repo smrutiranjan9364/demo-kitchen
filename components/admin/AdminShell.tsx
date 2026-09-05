@@ -8,7 +8,7 @@ import { AdminUIProvider } from "./AdminUI";
 import type { Role } from "@/lib/auth";
 import type { Right } from "@/lib/permissions";
 
-type CountKey = "categories" | "products" | "festival" | "orders" | "reviews";
+type CountKey = "categories" | "districts" | "products" | "festival" | "orders" | "reviews";
 type NavItem = {
   label: string;
   href: string;
@@ -27,6 +27,7 @@ const SECTIONS: NavSection[] = [
     label: "Catalog",
     items: [
       { label: "Categories", href: "/backend/dashboard/categories", icon: "tag", countKey: "categories", right: "categories" },
+      { label: "Districts", href: "/backend/dashboard/districts", icon: "map", countKey: "districts", right: "districts" },
       { label: "Products", href: "/backend/dashboard/products", icon: "box", countKey: "products", right: "products" },
       { label: "Festival", href: "/backend/dashboard/festival", icon: "confetti", countKey: "festival", right: "festival" },
     ],
@@ -291,6 +292,7 @@ export default function AdminShell({
 type IconName =
   | "grid"
   | "tag"
+  | "map"
   | "box"
   | "confetti"
   | "cart"
@@ -326,6 +328,13 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
         <svg {...p}>
           <path d="M20.6 13.4 12 22l-8-8 8.6-8.6a2 2 0 0 1 1.4-.6H20a2 2 0 0 1 2 2v6a2 2 0 0 1-.6 1.4Z" />
           <circle cx="16.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+        </svg>
+      );
+    case "map":
+      return (
+        <svg {...p}>
+          <path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z" />
+          <circle cx="12" cy="11" r="2.2" />
         </svg>
       );
     case "box":

@@ -14,7 +14,12 @@ import {
   getProductById as staticGetProductById,
   type Product,
 } from "@/data/products";
-import { CONTACT, type Category } from "@/data/site";
+import {
+  CONTACT,
+  DISTRICTS as STATIC_DISTRICTS,
+  type Category,
+  type District,
+} from "@/data/site";
 import { ALL_RIGHTS, type Right } from "@/lib/permissions";
 
 function slugify(s: string): string {
@@ -40,6 +45,7 @@ type ProductRow = {
   rating: number;
   reviews: number;
   category: string | null;
+  district: string | null;
   image: string | null;
   old_price: number | null;
   discount: number | null;
@@ -53,6 +59,7 @@ function toProduct(r: ProductRow): AdminProduct {
     rating: r.rating,
     reviews: r.reviews,
     category: r.category ?? undefined,
+    district: r.district ?? undefined,
     image: r.image ?? undefined,
     oldPrice: r.old_price ?? undefined,
     discount: r.discount ?? undefined,
@@ -78,6 +85,12 @@ export async function getProductsByCategory(slug: string): Promise<AdminProduct[
   return rows.map(toProduct);
 }
 
+export async function getProductsByDistrict(slug: string): Promise<AdminProduct[]> {
+  const rows = await sql<ProductRow[]>`
+    SELECT * FROM products WHERE district = ${slug} ORDER BY name`;
+  return rows.map(toProduct);
+}
+
 export async function getRelated(product: AdminProduct, limit = 4): Promise<AdminProduct[]> {
   if (!product.category) return [];
   const rows = await sql<ProductRow[]>`
@@ -92,6 +105,7 @@ export type ProductInput = {
   name: string;
   price: number;
   category?: string;
+  district?: string;
   image?: string;
   rating?: number;
   reviews?: number;
@@ -102,9 +116,9 @@ export type ProductInput = {
 export async function createProduct(input: ProductInput): Promise<AdminProduct> {
   const id = `${slugify(input.name)}-${Date.now().toString(36)}`;
   const rows = await sql<ProductRow[]>`
-    INSERT INTO products (id, name, price, rating, reviews, category, image, old_price, discount)
+    INSERT INTO products (id, name, price, rating, reviews, category, district, image, old_price, discount)
     VALUES (${id}, ${input.name}, ${input.price}, ${input.rating ?? 4.5}, ${input.reviews ?? 0},
-            ${input.category ?? null}, ${input.image ?? null},
+            ${input.category ?? null}, ${input.district ?? null}, ${input.image ?? null},
             ${input.oldPrice ?? null}, ${input.discount ?? null})
     RETURNING *`;
   return toProduct(rows[0]);
@@ -124,6 +138,7 @@ export async function updateProduct(
       rating    = ${patch.rating ?? cur.rating},
       reviews   = ${patch.reviews ?? cur.reviews},
       category  = ${patch.category ?? cur.category},
+      district  = ${patch.district ?? cur.district},
       image     = ${patch.image ?? cur.image},
       old_price = ${patch.oldPrice ?? cur.old_price},
       discount  = ${patch.discount ?? cur.discount}
@@ -357,6 +372,117 @@ export async function updateCategory(
 export async function deleteCategory(slug: string): Promise<boolean> {
   const rows = await sql`DELETE FROM categories WHERE slug = ${slug} RETURNING slug`;
   return rows.length > 0;
+}
+
+/* ----------------------------- Districts ---------------------------- */
+
+// A district of Odisha. Managed in the admin and shown as a storefront nav
+// submenu + landing page (/district/<slug>).
+export type AdminDistrict = {
+  slug: string;
+  name: string;
+  region?: string;
+  headquarter?: string;
+  description?: string;
+  image?: string;
+  sortOrder: number;
+};
+
+type DistrictRow = {
+  slug: string;
+  name: string;
+  region: string | null;
+  headquarter: string | null;
+  description: string | null;
+  image: string | null;
+  sort_order: number;
+};
+
+function toDistrict(r: DistrictRow): AdminDistrict {
+  return {
+    slug: r.slug,
+    name: r.name,
+    region: r.region ?? undefined,
+    headquarter: r.headquarter ?? undefined,
+    description: r.description ?? undefined,
+    image: r.image ?? undefined,
+    sortOrder: r.sort_order,
+  };
+}
+
+export async function getDistricts(): Promise<AdminDistrict[]> {
+  const rows = await sql<DistrictRow[]>`
+    SELECT * FROM districts ORDER BY sort_order, name`;
+  return rows.map(toDistrict);
+}
+
+export async function getDistrict(slug: string): Promise<AdminDistrict | undefined> {
+  const rows = await sql<DistrictRow[]>`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
+  return rows[0] ? toDistrict(rows[0]) : undefined;
+}
+
+export type DistrictInput = {
+  name: string;
+  slug?: string;
+  region?: string;
+  headquarter?: string;
+  description?: string;
+  image?: string;
+  sortOrder?: number;
+};
+
+// Returns the created district, or null if the slug already exists / is empty.
+export async function createDistrict(input: DistrictInput): Promise<AdminDistrict | null> {
+  const slug = (input.slug?.trim() || slugify(input.name)).replace(/[^a-z0-9-]/g, "");
+  if (!slug) return null;
+  const existing = await sql`SELECT 1 FROM districts WHERE slug = ${slug} LIMIT 1`;
+  if (existing.length > 0) return null;
+  const rows = await sql<DistrictRow[]>`
+    INSERT INTO districts (slug, name, region, headquarter, description, image, sort_order)
+    VALUES (${slug}, ${input.name.trim()}, ${input.region?.trim() || null},
+            ${input.headquarter?.trim() || null}, ${input.description?.trim() || null},
+            ${input.image?.trim() || null}, ${input.sortOrder ?? 0})
+    RETURNING *`;
+  return toDistrict(rows[0]);
+}
+
+export async function updateDistrict(
+  slug: string,
+  patch: Partial<DistrictInput>,
+): Promise<AdminDistrict | undefined> {
+  const existing = await sql<DistrictRow[]>`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
+  if (!existing[0]) return undefined;
+  const cur = existing[0];
+  const rows = await sql<DistrictRow[]>`
+    UPDATE districts SET
+      name        = ${patch.name?.trim() ?? cur.name},
+      region      = ${patch.region?.trim() ?? cur.region},
+      headquarter = ${patch.headquarter?.trim() ?? cur.headquarter},
+      description = ${patch.description?.trim() ?? cur.description},
+      image       = ${patch.image?.trim() ?? cur.image},
+      sort_order  = ${patch.sortOrder ?? cur.sort_order}
+    WHERE slug = ${slug}
+    RETURNING *`;
+  return toDistrict(rows[0]);
+}
+
+export async function deleteDistrict(slug: string): Promise<boolean> {
+  const rows = await sql`DELETE FROM districts WHERE slug = ${slug} RETURNING slug`;
+  return rows.length > 0;
+}
+
+// Nav-shaped list for the storefront header/mobile menus. Falls back to the
+// static seed list if the table is empty or unreachable.
+export async function getDistrictNav(): Promise<District[]> {
+  try {
+    const rows = await getDistricts();
+    if (rows.length > 0) {
+      return rows.map((d) => ({ label: d.name, href: `/district/${d.slug}` }));
+    }
+  } catch {
+    /* fall through to static list */
+  }
+  return STATIC_DISTRICTS;
 }
 
 /* ------------------------------ Admins ------------------------------ */

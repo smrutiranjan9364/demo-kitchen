@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth";
 import {
   getProducts,
   getCategories,
+  getDistricts,
   getOrders,
   getReviews,
   getFestivalFoods,
@@ -21,9 +22,10 @@ export default async function DashboardLayout({
   const session = await getSession();
   if (!session) redirect("/backend");
 
-  const [products, categories, orders, reviews, festival, rights] = await Promise.all([
+  const [products, categories, districts, orders, reviews, festival, rights] = await Promise.all([
     getProducts(),
     getCategories(),
+    getDistricts(),
     getOrders(),
     getReviews(),
     getFestivalFoods(),
@@ -34,6 +36,7 @@ export default async function DashboardLayout({
 
   const counts = {
     categories: categories.length,
+    districts: districts.length,
     products: products.length,
     festival: festival.length,
     orders: orders.length,

@@ -3,10 +3,15 @@
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { useState, useEffect } from "react";
-import { NAV_CATEGORIES, MORE_MENU, CONTACT } from "@/data/site";
+import { NAV_CATEGORIES, MORE_MENU, DISTRICTS, CONTACT, type District } from "@/data/site";
 
-export default function MobileNav() {
+export default function MobileNav({
+  districts = DISTRICTS,
+}: {
+  districts?: District[];
+}) {
   const [open, setOpen] = useState(false);
+  const [districtsOpen, setDistrictsOpen] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -75,6 +80,37 @@ export default function MobileNav() {
 
               <div className="mx-4 border-t border-black/10" />
 
+              {/* Districts submenu */}
+              <nav className="p-2">
+                <button
+                  type="button"
+                  onClick={() => setDistrictsOpen((o) => !o)}
+                  aria-expanded={districtsOpen}
+                  className="flex w-full items-center justify-between rounded-md px-4 py-3 text-sm font-semibold text-brand transition hover:bg-cream-soft"
+                >
+                  DISTRICTS
+                  <ChevronIcon
+                    className={`h-4 w-4 transition ${districtsOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {districtsOpen ? (
+                  <div className="max-h-64 overflow-y-auto pb-1">
+                    {districts.map((district) => (
+                      <Link
+                        key={district.label}
+                        href={district.href}
+                        onClick={() => setOpen(false)}
+                        className="block rounded-md py-2 pl-8 pr-4 text-sm text-gray-700 transition hover:bg-cream-soft hover:text-brand"
+                      >
+                        {district.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </nav>
+
+              <div className="mx-4 border-t border-black/10" />
+
               {/* More links */}
               <nav className="p-2">
                 <p className="px-4 pb-1 pt-2 text-[11px] font-semibold tracking-widest text-gray-400 uppercase">
@@ -121,6 +157,14 @@ function MenuIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+      <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

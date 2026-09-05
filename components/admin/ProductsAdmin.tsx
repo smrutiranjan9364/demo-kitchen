@@ -10,10 +10,14 @@ import { useAdminUI } from "./AdminUI";
 
 const slugOf = (c: Category) => c.href.replace("/category/", "");
 
+// Minimal district shape for the dropdown (avoids importing server-only code).
+type DistrictOption = { slug: string; name: string };
+
 type FormState = {
   name: string;
   price: string;
   category: string;
+  district: string;
   image: string;
   oldPrice: string;
   discount: string;
@@ -25,6 +29,7 @@ const EMPTY: FormState = {
   name: "",
   price: "",
   category: "",
+  district: "",
   image: "",
   oldPrice: "",
   discount: "",
@@ -37,6 +42,7 @@ function toForm(p: Product): FormState {
     name: p.name,
     price: String(p.price),
     category: p.category ?? "",
+    district: p.district ?? "",
     image: p.image ?? "",
     oldPrice: p.oldPrice != null ? String(p.oldPrice) : "",
     discount: p.discount != null ? String(p.discount) : "",
@@ -50,6 +56,7 @@ function toPayload(f: FormState) {
     name: f.name.trim(),
     price: Number(f.price),
     category: f.category || undefined,
+    district: f.district || undefined,
     image: f.image.trim() || undefined,
     oldPrice: f.oldPrice ? Number(f.oldPrice) : undefined,
     discount: f.discount ? Number(f.discount) : undefined,
@@ -61,11 +68,13 @@ function toPayload(f: FormState) {
 export default function ProductsAdmin({
   initialProducts,
   categories,
+  districts = [],
   heading = "Products",
   lockedCategory,
 }: {
   initialProducts: Product[];
   categories: Category[];
+  districts?: DistrictOption[];
   heading?: string;
   // When set, this view is scoped to one category: the category filter is
   // hidden and new products default to (and are locked to) this category.
@@ -81,17 +90,22 @@ export default function ProductsAdmin({
   // Filtering + pagination
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState("");
+  const [distFilter, setDistFilter] = useState("");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 8;
+
+  const districtName = (slug?: string) =>
+    districts.find((d) => d.slug === slug)?.name ?? slug;
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return products.filter(
       (p) =>
         (!catFilter || p.category === catFilter) &&
+        (!distFilter || p.district === distFilter) &&
         (!q || p.name.toLowerCase().includes(q)),
     );
-  }, [products, query, catFilter]);
+  }, [products, query, catFilter, distFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, totalPages);
@@ -208,6 +222,15 @@ export default function ProductsAdmin({
                 />
               </label>
             )}
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-600">District</span>
+              <SearchableSelect
+                value={form.district}
+                onChange={(v) => set("district", v)}
+                options={districts.map((d) => ({ value: d.slug, label: d.name }))}
+                placeholder="Select district"
+              />
+            </label>
             <Input label="Image URL" value={form.image} onChange={(v) => set("image", v)} />
             <div className="grid grid-cols-2 gap-4">
               <Input label="Old price (₹)" type="number" value={form.oldPrice} onChange={(v) => set("oldPrice", v)} />
@@ -270,11 +293,29 @@ export default function ProductsAdmin({
             ))}
           </select>
         )}
-        {(query || catFilter) && (
+        {districts.length > 0 && (
+          <select
+            value={distFilter}
+            onChange={(e) => {
+              setDistFilter(e.target.value);
+              setPage(1);
+            }}
+            className="rounded-lg border border-black/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+          >
+            <option value="">All districts</option>
+            {districts.map((d) => (
+              <option key={d.slug} value={d.slug}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {(query || catFilter || distFilter) && (
           <button
             onClick={() => {
               setQuery("");
               setCatFilter("");
+              setDistFilter("");
               setPage(1);
             }}
             className="rounded-lg border border-black/10 px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:border-gray-300"
@@ -291,6 +332,7 @@ export default function ProductsAdmin({
             <tr>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Category</th>
+              <th className="px-4 py-3">District</th>
               <th className="px-4 py-3">Price</th>
               <th className="px-4 py-3">Rating</th>
               <th className="px-4 py-3 text-right">Actions</th>
@@ -299,7 +341,7 @@ export default function ProductsAdmin({
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500">
                   No products match your filters.
                 </td>
               </tr>
@@ -317,6 +359,7 @@ export default function ProductsAdmin({
                   </div>
                 </td>
                 <td className="px-4 py-3 text-gray-500">{p.category ?? "—"}</td>
+                <td className="px-4 py-3 text-gray-500">{districtName(p.district) ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-800">₹{p.price}</td>
                 <td className="px-4 py-3 text-gray-500">
                   {p.rating} ({p.reviews})

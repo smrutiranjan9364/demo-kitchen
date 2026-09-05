@@ -14,6 +14,73 @@ export const MORE_MENU = [
   { label: "Return Policy", href: "/returns" },
 ];
 
+// Full district record (matches the `districts` DB table). Used both to seed
+// the database and as a static fallback for the storefront nav.
+export type DistrictSeed = {
+  slug: string;
+  name: string;
+  region: string;
+  headquarter: string;
+  description?: string;
+};
+
+// A single nav entry — the shape the header/mobile menus consume.
+export type District = { label: string; href: string };
+
+export const districtHref = (slug: string) => `/district/${slug}`;
+
+export const toDistrictSlug = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+// All 30 districts of Odisha, with region + headquarter. Seeds the DB and backs
+// the DISTRICTS nav submenu when the database has no rows.
+export const DISTRICTS_SEED: DistrictSeed[] = [
+  { name: "Angul", region: "Central", headquarter: "Angul" },
+  { name: "Balangir", region: "Western", headquarter: "Balangir" },
+  { name: "Balasore", region: "Coastal", headquarter: "Baleswar" },
+  { name: "Bargarh", region: "Western", headquarter: "Bargarh" },
+  { name: "Bhadrak", region: "Coastal", headquarter: "Bhadrak" },
+  { name: "Boudh", region: "Western", headquarter: "Boudh" },
+  { name: "Cuttack", region: "Coastal", headquarter: "Cuttack" },
+  { name: "Deogarh", region: "Northern", headquarter: "Deogarh" },
+  { name: "Dhenkanal", region: "Central", headquarter: "Dhenkanal" },
+  { name: "Gajapati", region: "Southern", headquarter: "Paralakhemundi" },
+  { name: "Ganjam", region: "Southern", headquarter: "Chhatrapur" },
+  { name: "Jagatsinghpur", region: "Coastal", headquarter: "Jagatsinghpur" },
+  { name: "Jajpur", region: "Coastal", headquarter: "Jajpur" },
+  { name: "Jharsuguda", region: "Western", headquarter: "Jharsuguda" },
+  { name: "Kalahandi", region: "Western", headquarter: "Bhawanipatna" },
+  { name: "Kandhamal", region: "Central", headquarter: "Phulbani" },
+  { name: "Kendrapara", region: "Coastal", headquarter: "Kendrapara" },
+  { name: "Kendujhar", region: "Northern", headquarter: "Kendujhar" },
+  { name: "Khordha", region: "Coastal", headquarter: "Khordha" },
+  { name: "Koraput", region: "Southern", headquarter: "Koraput" },
+  { name: "Malkangiri", region: "Southern", headquarter: "Malkangiri" },
+  { name: "Mayurbhanj", region: "Northern", headquarter: "Baripada" },
+  { name: "Nabarangpur", region: "Southern", headquarter: "Nabarangpur" },
+  { name: "Nayagarh", region: "Central", headquarter: "Nayagarh" },
+  { name: "Nuapada", region: "Western", headquarter: "Nuapada" },
+  { name: "Puri", region: "Coastal", headquarter: "Puri" },
+  { name: "Rayagada", region: "Southern", headquarter: "Rayagada" },
+  { name: "Sambalpur", region: "Western", headquarter: "Sambalpur" },
+  { name: "Subarnapur", region: "Western", headquarter: "Sonepur" },
+  { name: "Sundargarh", region: "Northern", headquarter: "Sundargarh" },
+].map((d) => ({ ...d, slug: toDistrictSlug(d.name) }));
+
+// Nav-shaped list used as a static fallback by the header/mobile menus.
+export const DISTRICTS: District[] = DISTRICTS_SEED.map((d) => ({
+  label: d.name,
+  href: districtHref(d.slug),
+}));
+
+export const districtSlug = (d: District) => d.href.replace("/district/", "");
+
+export const getDistrictBySlug = (slug: string) =>
+  DISTRICTS_SEED.find((d) => d.slug === slug);
+
 export type Category = {
   label: string;
   href: string;

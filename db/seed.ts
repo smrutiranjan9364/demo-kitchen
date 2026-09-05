@@ -6,7 +6,7 @@ config({ path: ".env.local" });
 config(); // also load .env if present (does not override existing vars)
 import postgres from "postgres";
 import { ALL_PRODUCTS, FESTIVAL_FOODS } from "../data/products";
-import { CATEGORIES, categorySlug, CONTACT } from "../data/site";
+import { CATEGORIES, categorySlug, CONTACT, DISTRICTS_SEED } from "../data/site";
 
 // Mirrors the defaults previously baked into lib/store.ts.
 const DEFAULT_CATEGORY_IMAGE =
@@ -57,6 +57,22 @@ async function main() {
     console.log(`✓ Seeded ${CATEGORIES.length} categories.`);
   } else {
     console.log("• categories already populated — skipped.");
+  }
+
+  // Districts
+  if (await isEmpty("districts")) {
+    let order = 0;
+    for (const d of DISTRICTS_SEED) {
+      await sql`
+        INSERT INTO districts (slug, name, region, headquarter, description, image, sort_order)
+        VALUES (${d.slug}, ${d.name}, ${d.region ?? null}, ${d.headquarter ?? null},
+                ${d.description ?? null}, ${null}, ${order})
+        ON CONFLICT (slug) DO NOTHING`;
+      order += 1;
+    }
+    console.log(`✓ Seeded ${DISTRICTS_SEED.length} districts.`);
+  } else {
+    console.log("• districts already populated — skipped.");
   }
 
   // Festival foods

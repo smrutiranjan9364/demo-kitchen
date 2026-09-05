@@ -1,19 +1,22 @@
 import Link from "next/link";
 import BrandLogo from "@/components/BrandLogo";
 import { NAV_CATEGORIES, CONTACT } from "@/data/site";
+import { getDistrictNav } from "@/lib/store";
 import CartLink from "./CartLink";
 import MoreMenu from "./MoreMenu";
+import DistrictsMenu from "./DistrictsMenu";
 import MobileNav from "./MobileNav";
 import LoginButton from "@/components/auth/LoginButton";
 
-export default function Header() {
+export default async function Header() {
+  const districts = await getDistrictNav();
   return (
     <header className="sticky top-0 z-50">
       {/* Top bar */}
       <div className="bg-brand text-cream">
         <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6">
           {/* Hamburger (mobile) */}
-          <MobileNav />
+          <MobileNav districts={districts} />
 
           <Link href="/" className="shrink-0" aria-label="Odia Kitchen — home">
             <BrandLogo
@@ -106,6 +109,7 @@ export default function Header() {
               </Link>
             );
           })}
+          <DistrictsMenu districts={districts} />
           <MoreMenu />
         </div>
       </nav>

@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS products (
   discount   INTEGER
 );
 CREATE INDEX IF NOT EXISTS products_category_idx ON products (category);
+-- Migration: tag each product with a district (added after initial release).
+ALTER TABLE products ADD COLUMN IF NOT EXISTS district TEXT;
+CREATE INDEX IF NOT EXISTS products_district_idx ON products (district);
 
 CREATE TABLE IF NOT EXISTS categories (
   slug        TEXT PRIMARY KEY,
@@ -21,6 +24,17 @@ CREATE TABLE IF NOT EXISTS categories (
   image       TEXT NOT NULL,
   description TEXT
 );
+
+CREATE TABLE IF NOT EXISTS districts (
+  slug        TEXT PRIMARY KEY,
+  name        TEXT    NOT NULL,
+  region      TEXT,
+  headquarter TEXT,
+  description TEXT,
+  image       TEXT,
+  sort_order  INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS districts_sort_idx ON districts (sort_order, name);
 
 CREATE TABLE IF NOT EXISTS orders (
   id         TEXT PRIMARY KEY,

@@ -8,6 +8,7 @@ export type Product = {
   discount?: number;
   image?: string;
   category?: string;
+  district?: string;
 };
 
 const img = (id: string) =>
