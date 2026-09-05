@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { AdminDistrict } from "@/lib/store";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
+import { useServerData } from "./useServerData";
 
 type FormState = {
   name: string;
@@ -32,7 +33,7 @@ export default function DistrictsAdmin({
   initialDistricts: AdminDistrict[];
 }) {
   const { toast, confirm } = useAdminUI();
-  const [districts, setDistricts] = useState<AdminDistrict[]>(initialDistricts);
+  const [districts, setDistricts] = useServerData<AdminDistrict[]>(initialDistricts);
   const [editing, setEditing] = useState<string | null>(null); // null closed, "new", or slug
   const [form, setForm] = useState<FormState>(EMPTY);
   const [busy, setBusy] = useState(false);

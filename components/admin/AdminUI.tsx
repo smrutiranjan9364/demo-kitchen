@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -70,8 +71,10 @@ export function AdminUIProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("keydown", onKey);
   }, [confirmState, closeConfirm]);
 
+  const value = useMemo(() => ({ toast, confirm }), [toast, confirm]);
+
   return (
-    <Ctx.Provider value={{ toast, confirm }}>
+    <Ctx.Provider value={value}>
       {children}
 
       {/* Toasts */}

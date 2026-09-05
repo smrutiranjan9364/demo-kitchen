@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { Investment } from "@/lib/store";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
+import { useServerData } from "./useServerData";
 
 const CATEGORY_SUGGESTIONS = [
   "Ingredients",
@@ -53,7 +54,7 @@ export default function InvestmentsAdmin({
   initialInvestments: Investment[];
 }) {
   const { toast, confirm } = useAdminUI();
-  const [items, setItems] = useState<Investment[]>(initialInvestments);
+  const [items, setItems] = useServerData<Investment[]>(initialInvestments);
   const [editing, setEditing] = useState<string | null>(null); // null closed, "new", or id
   const [form, setForm] = useState<FormState>(EMPTY);
   const [busy, setBusy] = useState(false);

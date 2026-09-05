@@ -139,43 +139,6 @@ export default function AdminShell({
   const isActive = (href: string) =>
     href === "/backend/dashboard" ? pathname === href : pathname.startsWith(href);
 
-  const NavLink = ({ item }: { item: NavItem }) => {
-    const active = isActive(item.href);
-    const count = item.countKey ? counts?.[item.countKey] : undefined;
-    return (
-      <Link
-        href={item.href}
-        title={collapsed ? item.label : undefined}
-        className={`group relative flex items-center rounded-lg py-2.5 text-sm font-medium transition ${
-          collapsed ? "justify-center px-0" : "gap-3 px-3"
-        } ${active ? "bg-white/15 text-white" : "text-cream/70 hover:bg-white/10 hover:text-white"}`}
-      >
-        <span
-          className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[#f06aa8] transition-opacity ${
-            active ? "opacity-100" : "opacity-0"
-          }`}
-        />
-        <span className="relative shrink-0">
-          <Icon name={item.icon} className="h-[18px] w-[18px]" />
-          {/* count dot when collapsed */}
-          {collapsed && count != null && count > 0 ? (
-            <span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-[#f06aa8] ring-2 ring-brand" />
-          ) : null}
-        </span>
-        {!collapsed ? <span className="flex-1">{item.label}</span> : null}
-        {!collapsed && count != null ? (
-          <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-              active ? "bg-white/20 text-white" : "bg-white/10 text-cream/70"
-            }`}
-          >
-            {count}
-          </span>
-        ) : null}
-      </Link>
-    );
-  };
-
   const roleLabel = role === "super" ? "Super Admin" : "Admin";
 
   return (
@@ -238,7 +201,13 @@ export default function AdminShell({
               {section.label && collapsed ? <div className="mx-3 mb-2 border-t border-white/10" /> : null}
               <div className="space-y-1">
                 {section.items.map((item) => (
-                  <NavLink key={item.href} item={item} />
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    active={isActive(item.href)}
+                    count={item.countKey ? counts?.[item.countKey] : undefined}
+                    collapsed={collapsed}
+                  />
                 ))}
               </div>
             </div>
@@ -309,6 +278,56 @@ export default function AdminShell({
         </main>
       </div>
     </div>
+  );
+}
+
+/* -------------------------------- NavLink -------------------------------- */
+
+// Declared at module scope (not inside AdminShell) so its component type is
+// stable across renders — otherwise every sidebar item would unmount/remount
+// on each navigation or sidebar-collapse toggle.
+function NavLink({
+  item,
+  active,
+  count,
+  collapsed,
+}: {
+  item: NavItem;
+  active: boolean;
+  count: number | undefined;
+  collapsed: boolean;
+}) {
+  return (
+    <Link
+      href={item.href}
+      title={collapsed ? item.label : undefined}
+      className={`group relative flex items-center rounded-lg py-2.5 text-sm font-medium transition ${
+        collapsed ? "justify-center px-0" : "gap-3 px-3"
+      } ${active ? "bg-white/15 text-white" : "text-cream/70 hover:bg-white/10 hover:text-white"}`}
+    >
+      <span
+        className={`absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-[#f06aa8] transition-opacity ${
+          active ? "opacity-100" : "opacity-0"
+        }`}
+      />
+      <span className="relative shrink-0">
+        <Icon name={item.icon} className="h-[18px] w-[18px]" />
+        {/* count dot when collapsed */}
+        {collapsed && count != null && count > 0 ? (
+          <span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-[#f06aa8] ring-2 ring-brand" />
+        ) : null}
+      </span>
+      {!collapsed ? <span className="flex-1">{item.label}</span> : null}
+      {!collapsed && count != null ? (
+        <span
+          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+            active ? "bg-white/20 text-white" : "bg-white/10 text-cream/70"
+          }`}
+        >
+          {count}
+        </span>
+      ) : null}
+    </Link>
   );
 }
 

@@ -7,6 +7,7 @@ import Link from "next/link";
 import type { Category } from "@/data/site";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
+import { useServerData } from "./useServerData";
 
 // Derive the slug from a category's href (/category/<slug>).
 const slugOf = (c: Category) => c.href.replace("/category/", "");
@@ -20,7 +21,7 @@ export default function CategoriesAdmin({
   initialCategories: Category[];
 }) {
   const { toast, confirm } = useAdminUI();
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [categories, setCategories] = useServerData<Category[]>(initialCategories);
   const [editing, setEditing] = useState<string | null>(null); // null closed, "new", or slug
   const [form, setForm] = useState<FormState>(EMPTY);
   const [busy, setBusy] = useState(false);

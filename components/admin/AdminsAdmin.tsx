@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useServerData } from "./useServerData";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
 import { RIGHTS, ALL_RIGHTS, NON_GRANTABLE_PAGES, type Right } from "@/lib/permissions";
@@ -32,7 +33,7 @@ export default function AdminsAdmin({
   superUsername: string;
 }) {
   const { toast, confirm } = useAdminUI();
-  const [users, setUsers] = useState<AdminRow[]>(initialUsers);
+  const [users, setUsers] = useServerData<AdminRow[]>(initialUsers);
   // null = closed, "new" = add, else the username being edited
   const [editing, setEditing] = useState<string | null>(null);
   const [username, setUsername] = useState("");

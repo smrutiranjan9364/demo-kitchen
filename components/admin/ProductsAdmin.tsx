@@ -7,6 +7,7 @@ import type { Category } from "@/data/site";
 import SlideOver from "./SlideOver";
 import SearchableSelect from "./SearchableSelect";
 import { useAdminUI } from "./AdminUI";
+import { useServerData } from "./useServerData";
 
 const slugOf = (c: Category) => c.href.replace("/category/", "");
 
@@ -81,7 +82,7 @@ export default function ProductsAdmin({
   lockedCategory?: string;
 }) {
   const { toast, confirm } = useAdminUI();
-  const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [products, setProducts] = useServerData<Product[]>(initialProducts);
   const [editingId, setEditingId] = useState<string | null>(null); // null = closed, "new" = add
   const [form, setForm] = useState<FormState>(EMPTY);
   const [busy, setBusy] = useState(false);

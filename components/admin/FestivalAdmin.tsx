@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useServerData } from "./useServerData";
 import Image from "next/image";
 import type { FestivalFood } from "@/lib/store";
 import SlideOver from "./SlideOver";
@@ -15,7 +16,7 @@ export default function FestivalAdmin({
   initialFoods: FestivalFood[];
 }) {
   const { toast, confirm } = useAdminUI();
-  const [foods, setFoods] = useState<FestivalFood[]>(initialFoods);
+  const [foods, setFoods] = useServerData<FestivalFood[]>(initialFoods);
   const [editing, setEditing] = useState<string | null>(null); // null | "new" | id
   const [form, setForm] = useState<FormState>(EMPTY);
   const [busy, setBusy] = useState(false);
