@@ -62,7 +62,7 @@ test("development, test and provider preview deployments cannot opt into indexin
     { VERCEL_ENV: "preview" }, { VERCEL_ENV: "development" },
     { CONTEXT: "deploy-preview" }, { CONTEXT: "branch-deploy" },
   ]) {
-    assert.equal(getSeoConfig({ ...production, ...overrides }).indexable, false, JSON.stringify(overrides));
+    assert.equal(getSeoConfig({ ...production, ...overrides } as NodeJS.ProcessEnv).indexable, false, JSON.stringify(overrides));
   }
   assert.equal(getSeoConfig({ ...production, VERCEL_ENV: "production", CONTEXT: "production" }).indexable, true);
 });
@@ -75,7 +75,7 @@ test("invalid, private, preview and non-origin SITE_URL values are rejected", ()
     "https://user:password@kitchen.example.com", `${ORIGIN}:8443`, `${ORIGIN}/shop`,
     `${ORIGIN}?tracking=1`, `${ORIGIN}#fragment`,
   ]) {
-    assert.throws(() => getSeoConfig({ ...production, SITE_URL: siteUrl }), undefined, siteUrl);
+    assert.throws(() => getSeoConfig({ ...production, SITE_URL: siteUrl }), siteUrl);
   }
 });
 
@@ -84,7 +84,7 @@ test("absolute URLs keep page paths on the canonical origin", async () => {
     assert.equal(absoluteUrl("/"), `${ORIGIN}/`);
     assert.equal(absoluteUrl("/product/chhena-poda"), `${ORIGIN}/product/chhena-poda`);
     for (const unsafe of ["shop", "https://external.example/path", "//external.example/path", "/\\external.example/path"]) {
-      assert.throws(() => absoluteUrl(unsafe), undefined, unsafe);
+      assert.throws(() => absoluteUrl(unsafe), unsafe);
     }
   });
 });
@@ -109,7 +109,7 @@ test("metadata includes matching canonical, Open Graph and Twitter fields", asyn
     const metadata = createMetadata({ path: "/shop", title: "Odia Food", description: "  Browse\n traditional   food. " });
     assert.deepEqual(metadata.title, { absolute: `Odia Food | ${SITE_NAME}` });
     assert.equal(metadata.description, "Browse traditional food.");
-    assert.equal(metadata.metadataBase?.href, `${ORIGIN}/`);
+    assert.equal((metadata.metadataBase as URL | undefined)?.href, `${ORIGIN}/`);
     assert.equal(metadata.alternates?.canonical, `${ORIGIN}/shop`);
     assert.deepEqual(metadata.robots, { index: true, follow: true, "max-image-preview": "large" });
     assert.deepEqual(metadata.openGraph, {
