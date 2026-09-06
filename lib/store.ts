@@ -299,6 +299,7 @@ type RawCategory = {
   slug: string;
   label: string;
   image: string;
+  emoji?: string;
   description?: string;
 };
 
@@ -306,25 +307,26 @@ type CategoryRow = {
   slug: string;
   label: string;
   image: string;
+  emoji: string | null;
   description: string | null;
 };
 
-const DEFAULT_CATEGORY_IMAGE =
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg";
+const DEFAULT_CATEGORY_IMAGE = "/images/wm/chanachur.jpg";
 
 // Returns categories in the frontend `Category` shape, with a live product count.
 export const getCategories = cache(async (): Promise<Category[]> => {
   const rows = await sql<(CategoryRow & { count: number })[]>`
-    SELECT c.slug, c.label, c.image, c.description,
+    SELECT c.slug, c.label, c.image, c.emoji, c.description,
            count(p.id)::int AS count
     FROM categories c
     LEFT JOIN products p ON p.category = c.slug
-    GROUP BY c.slug, c.label, c.image, c.description
+    GROUP BY c.slug, c.label, c.image, c.emoji, c.description
     ORDER BY c.label`;
   return rows.map((c) => ({
     label: c.label,
     href: `/category/${c.slug}`,
-    image: c.image,
+    image: c.image || undefined,
+    emoji: c.emoji ?? undefined,
     description: c.description ?? undefined,
     count: c.count,
   }));
@@ -338,6 +340,7 @@ export type CategoryInput = {
   label: string;
   slug?: string;
   image?: string;
+  emoji?: string;
   description?: string;
 };
 
@@ -348,13 +351,20 @@ export async function createCategory(input: CategoryInput): Promise<RawCategory 
   const existing = await sql`SELECT 1 FROM categories WHERE slug = ${slug} LIMIT 1`;
   if (existing.length > 0) return null;
   const rows = await sql<CategoryRow[]>`
-    INSERT INTO categories (slug, label, image, description)
+    INSERT INTO categories (slug, label, image, emoji, description)
     VALUES (${slug}, ${input.label.trim()},
-            ${input.image?.trim() || DEFAULT_CATEGORY_IMAGE},
+            ${input.image?.trim() || (input.emoji?.trim() ? "" : DEFAULT_CATEGORY_IMAGE)},
+            ${input.emoji?.trim() || null},
             ${input.description?.trim() || null})
     RETURNING *`;
   const r = rows[0];
-  return { slug: r.slug, label: r.label, image: r.image, description: r.description ?? undefined };
+  return {
+    slug: r.slug,
+    label: r.label,
+    image: r.image,
+    emoji: r.emoji ?? undefined,
+    description: r.description ?? undefined,
+  };
 }
 
 export async function updateCategory(
@@ -368,11 +378,18 @@ export async function updateCategory(
     UPDATE categories SET
       label       = ${patch.label?.trim() ?? cur.label},
       image       = ${patch.image?.trim() ?? cur.image},
+      emoji       = ${patch.emoji?.trim() ?? cur.emoji},
       description = ${patch.description?.trim() ?? cur.description}
     WHERE slug = ${slug}
     RETURNING *`;
   const r = rows[0];
-  return { slug: r.slug, label: r.label, image: r.image, description: r.description ?? undefined };
+  return {
+    slug: r.slug,
+    label: r.label,
+    image: r.image,
+    emoji: r.emoji ?? undefined,
+    description: r.description ?? undefined,
+  };
 }
 
 export async function deleteCategory(slug: string): Promise<boolean> {

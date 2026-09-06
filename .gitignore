@@ -9,3 +9,7 @@ next-env.d.ts
 
 # Admin fs data store
 /data/.store
+
+# Admin-uploaded images (keep the folder, ignore its contents)
+/public/uploads/*
+!/public/uploads/.gitkeep

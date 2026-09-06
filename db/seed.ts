@@ -9,8 +9,7 @@ import { ALL_PRODUCTS, FESTIVAL_FOODS } from "../data/products";
 import { CATEGORIES, categorySlug, CONTACT, DISTRICTS_SEED } from "../data/site";
 
 // Mirrors the defaults previously baked into lib/store.ts.
-const DEFAULT_CATEGORY_IMAGE =
-  "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg";
+const DEFAULT_CATEGORY_IMAGE = "/images/wm/chanachur.jpg";
 
 const SEED_FESTIVAL_NOTES: Record<string, string> = {
   "chhena-poda": "A caramelised cheese dessert, slow-baked to a smoky, golden finish.",
@@ -50,8 +49,8 @@ async function main() {
   if (await isEmpty("categories")) {
     for (const c of CATEGORIES) {
       await sql`
-        INSERT INTO categories (slug, label, image, description)
-        VALUES (${categorySlug(c)}, ${c.label}, ${c.image}, ${c.description ?? null})
+        INSERT INTO categories (slug, label, image, emoji, description)
+        VALUES (${categorySlug(c)}, ${c.label}, ${c.image ?? ""}, ${c.emoji ?? null}, ${c.description ?? null})
         ON CONFLICT (slug) DO NOTHING`;
     }
     console.log(`✓ Seeded ${CATEGORIES.length} categories.`);

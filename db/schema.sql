@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS categories (
   image       TEXT NOT NULL,
   description TEXT
 );
+-- Migration: categories can be represented by an emoji tile instead of a photo.
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS emoji TEXT;
 
 -- Investments / spending ledger: where money is spent, with full details.
 CREATE TABLE IF NOT EXISTS investments (

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import type { Category } from "@/data/site";
+import ImageUpload from "./ImageUpload";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
 import { useServerData } from "./useServerData";
@@ -269,7 +270,7 @@ export default function CategoriesAdmin({
               placeholder="auto from name"
               disabled={editing !== "new"}
             />
-            <Input label="Image URL" value={form.image} onChange={(v) => set("image", v)} />
+            <ImageUpload value={form.image} onChange={(v) => set("image", v)} />
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-600">Description</span>
               <textarea

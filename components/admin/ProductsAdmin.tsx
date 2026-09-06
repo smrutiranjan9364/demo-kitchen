@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/site";
+import ImageUpload from "./ImageUpload";
 import SlideOver from "./SlideOver";
 import SearchableSelect from "./SearchableSelect";
 import { useAdminUI } from "./AdminUI";
@@ -232,7 +233,7 @@ export default function ProductsAdmin({
                 placeholder="Select district"
               />
             </label>
-            <Input label="Image URL" value={form.image} onChange={(v) => set("image", v)} />
+            <ImageUpload value={form.image} onChange={(v) => set("image", v)} />
             <div className="grid grid-cols-2 gap-4">
               <Input label="Old price (₹)" type="number" value={form.oldPrice} onChange={(v) => set("oldPrice", v)} />
               <Input label="Discount (%)" type="number" value={form.discount} onChange={(v) => set("discount", v)} />

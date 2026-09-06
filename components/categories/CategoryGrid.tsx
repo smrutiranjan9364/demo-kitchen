@@ -56,15 +56,26 @@ export default function CategoryGrid({ categories }: { categories: Category[] })
               className="group flex flex-col overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-black/5 transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="relative aspect-[4/3] overflow-hidden">
-                <Image
-                  src={cat.image}
-                  alt={cat.label}
-                  fill
-                  sizes="(min-width: 1280px) 290px, (min-width: 1024px) calc(25vw - 30px), (min-width: 640px) calc(50vw - 36px), calc(100vw - 32px)"
-                  loading={index === 0 ? "eager" : "lazy"}
-                  fetchPriority={index === 0 ? "high" : undefined}
-                  className="object-cover transition duration-500 group-hover:scale-105"
-                />
+                {cat.image ? (
+                  <Image
+                    src={cat.image}
+                    alt={cat.label}
+                    fill
+                    sizes="(min-width: 1280px) 290px, (min-width: 1024px) calc(25vw - 30px), (min-width: 640px) calc(50vw - 36px), calc(100vw - 32px)"
+                    loading={index === 0 ? "eager" : "lazy"}
+                    fetchPriority={index === 0 ? "high" : undefined}
+                    className="object-cover transition duration-500 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cream to-cream-soft">
+                    <span
+                      aria-hidden
+                      className="text-6xl transition duration-500 group-hover:scale-110"
+                    >
+                      {cat.emoji ?? "🛒"}
+                    </span>
+                  </div>
+                )}
                 {cat.count ? (
                   <span className="absolute left-3 top-3 rounded-full bg-brand/90 px-2.5 py-1 text-[10px] font-semibold text-cream shadow">
                     {cat.count} items

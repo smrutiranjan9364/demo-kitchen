@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useServerData } from "./useServerData";
 import Image from "next/image";
 import type { FestivalFood } from "@/lib/store";
+import ImageUpload from "./ImageUpload";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
 
@@ -188,7 +189,7 @@ export default function FestivalAdmin({
               onChange={(v) => set("festival", v)}
               placeholder="e.g. Raja Parba, Makar Sankranti"
             />
-            <Input label="Image URL" value={form.image} onChange={(v) => set("image", v)} />
+            <ImageUpload value={form.image} onChange={(v) => set("image", v)} />
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-gray-600">Note / description</span>
               <textarea

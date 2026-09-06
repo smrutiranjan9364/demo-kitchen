@@ -54,10 +54,10 @@ export default async function FestivalPage() {
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/category/gift-hampers"
+              href="/category/sweets"
               className="inline-block bg-brand px-6 py-3 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light"
             >
-              SHOP FESTIVE HAMPERS
+              SHOP FESTIVE SWEETS
             </Link>
             <Link
               href="/shop"

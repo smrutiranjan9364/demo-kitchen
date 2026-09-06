@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 
 import type { AdminDistrict } from "@/lib/store";
+import ImageUpload from "./ImageUpload";
 import SlideOver from "./SlideOver";
 import { useAdminUI } from "./AdminUI";
 import { useServerData } from "./useServerData";
@@ -284,7 +285,7 @@ export default function DistrictsAdmin({
             />
             <Input label="Region" value={form.region} onChange={(v) => set("region", v)} placeholder="Coastal / Western / …" />
             <Input label="Headquarter" value={form.headquarter} onChange={(v) => set("headquarter", v)} />
-            <Input label="Image URL" value={form.image} onChange={(v) => set("image", v)} />
+            <ImageUpload value={form.image} onChange={(v) => set("image", v)} />
             <Input
               label="Sort order"
               value={form.sortOrder}

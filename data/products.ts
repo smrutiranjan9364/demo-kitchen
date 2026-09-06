@@ -14,45 +14,49 @@ export type Product = {
 const img = (id: string) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=80`;
 
-// Authentic dish photos from Wikimedia Commons (freely licensed).
-// Used where a real photo of the specific Odia dish is available; other
-// pantry staples fall back to generic stock photos via img().
-const wm = "https://upload.wikimedia.org/wikipedia/commons";
+// Authentic dish photos, sourced from Wikimedia Commons (freely licensed) and
+// self-hosted under public/images/wm/ — hotlinking upload.wikimedia.org got the
+// Next.js image optimizer rate-limited (429). Used where a real photo of the
+// specific Odia dish is available; other pantry staples fall back to generic
+// stock photos via img().
+const wm = "/images/wm";
 const W = {
-  chhenaPoda: `${wm}/thumb/3/3e/Bhubaneswar_Odia_Meetup_2013Jan29-23.JPG/960px-Bhubaneswar_Odia_Meetup_2013Jan29-23.JPG`,
-  rasgulla: `${wm}/thumb/3/39/Rasgulla.jpg/960px-Rasgulla.jpg`,
-  chhenaJhili: `${wm}/thumb/2/25/Chhena_Jhili.JPG/960px-Chhena_Jhili.JPG`,
-  chhenaGaja: `${wm}/thumb/0/04/Chhena_Haha_%E0%A5%A4_%E0%AC%9B%E0%AD%87%E0%AC%A8%E0%AC%BE_%E0%AC%97%E0%AC%9C%E0%AC%BE.jpg/960px-Chhena_Haha_%E0%A5%A4_%E0%AC%9B%E0%AD%87%E0%AC%A8%E0%AC%BE_%E0%AC%97%E0%AC%9C%E0%AC%BE.jpg`,
-  rasabali: `${wm}/thumb/e/e8/Rasabali%2C_Odisha_traditional_sweet.jpg/960px-Rasabali%2C_Odisha_traditional_sweet.jpg`,
-  khaja: `${wm}/thumb/3/35/Baleswari_khaja_pheni_Oriya_cuisine.jpg/960px-Baleswari_khaja_pheni_Oriya_cuisine.jpg`,
-  manda: `${wm}/thumb/d/d3/SIJHA_MANDA.jpg/960px-SIJHA_MANDA.jpg`,
-  arisa: `${wm}/2/20/Arisa_pitha_Odia_cuisine.jpg`,
-  kakara: `${wm}/thumb/3/3a/ATTA_KAKARA.jpg/960px-ATTA_KAKARA.jpg`,
-  chakuli: `${wm}/thumb/d/d5/Chuda_chakuli_pitha.jpg/960px-Chuda_chakuli_pitha.jpg`,
-  enduri: `${wm}/thumb/e/e7/Enduri_Pitha.JPG/960px-Enduri_Pitha.JPG`,
-  podaPitha: `${wm}/thumb/f/f2/Poda_pitha_.jpg/960px-Poda_pitha_.jpg`,
-  chanachur: `${wm}/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg`,
-  chuda: `${wm}/thumb/8/80/Poha.jpg/960px-Poha.jpg`,
-  ganthia: `${wm}/thumb/6/66/Ghatiya_2013-11-30_18-09.jpg/960px-Ghatiya_2013-11-30_18-09.jpg`,
-  peanut: `${wm}/thumb/f/fd/Kuli_kuli.jpg/960px-Kuli_kuli.jpg`,
-  mudhi: `${wm}/thumb/c/c6/PuffedRice.jpg/960px-PuffedRice.jpg`,
-  turmeric: `${wm}/thumb/3/3e/Turmeric_Powder_Spelled_Out.jpg/960px-Turmeric_Powder_Spelled_Out.jpg`,
-  mustard: `${wm}/thumb/f/f4/Mustard.JPG/960px-Mustard.JPG`,
-  dalma: `${wm}/thumb/b/bf/Dalma%28dish%29.jpg/960px-Dalma%28dish%29.jpg`,
-  santula: `${wm}/5/53/Santula_Odia_Cuisine.jpg`,
-  pakhala: `${wm}/thumb/a/a4/Pakhala_01.jpg/960px-Pakhala_01.jpg`,
-  garlicPickle: `${wm}/thumb/8/81/Garlic_Pickle_in_Oil.JPG/960px-Garlic_Pickle_in_Oil.JPG`,
-  ragi: `${wm}/thumb/a/ac/Ragi_millet_flour.jpg/960px-Ragi_millet_flour.jpg`,
-  belaPana: `${wm}/thumb/b/b1/Bela_pana.jpg/960px-Bela_pana.jpg`,
-  chhatua: `${wm}/thumb/9/99/Mix_Saatu.jpg/960px-Mix_Saatu.jpg`,
-  ravaCake: `${wm}/thumb/6/64/Rava_Cake.jpg/960px-Rava_Cake.jpg`,
-  nankhatai: `${wm}/thumb/3/37/Nankhatai.jpg/960px-Nankhatai.jpg`,
-  almonds: `${wm}/thumb/3/37/Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg/960px-Almonds_-_in_shell%2C_shell_cracked_open%2C_shelled%2C_blanched.jpg`,
+  chhenaPoda: `${wm}/chhena-poda.jpg`,
+  rasgulla: `${wm}/rasgulla.jpg`,
+  chhenaJhili: `${wm}/chhena-jhili.jpg`,
+  chhenaGaja: `${wm}/chhena-gaja.jpg`,
+  rasabali: `${wm}/rasabali.jpg`,
+  khaja: `${wm}/khaja.jpg`,
+  manda: `${wm}/manda.jpg`,
+  arisa: `${wm}/arisa.jpg`,
+  kakara: `${wm}/kakara.jpg`,
+  chakuli: `${wm}/chakuli.jpg`,
+  enduri: `${wm}/enduri.jpg`,
+  podaPitha: `${wm}/poda-pitha.jpg`,
+  chanachur: `${wm}/chanachur.jpg`,
+  chuda: `${wm}/chuda.jpg`,
+  ganthia: `${wm}/ganthia.jpg`,
+  peanut: `${wm}/peanut.jpg`,
+  mudhi: `${wm}/mudhi.jpg`,
+  turmeric: `${wm}/turmeric.jpg`,
+  mustard: `${wm}/mustard.jpg`,
+  dalma: `${wm}/dalma.jpg`,
+  santula: `${wm}/santula.jpg`,
+  pakhala: `${wm}/pakhala.jpg`,
+  garlicPickle: `${wm}/garlic-pickle.jpg`,
+  ragi: `${wm}/ragi.jpg`,
+  belaPana: `${wm}/bela-pana.jpg`,
+  chhatua: `${wm}/chhatua.jpg`,
+  ravaCake: `${wm}/rava-cake.jpg`,
+  nankhatai: `${wm}/nankhatai.jpg`,
+  almonds: `${wm}/almonds.jpg`,
 };
 
-// Resolve an image reference: a full URL is used as-is, otherwise it is
-// treated as an Unsplash photo id.
-const pic = (ref: string) => (ref.startsWith("http") ? ref : img(ref));
+// Resolve an image reference: a full URL or a root-relative path (e.g. a
+// self-hosted /images/... asset) is used as-is, otherwise it is treated as an
+// Unsplash photo id.
+const pic = (ref: string) =>
+  ref.startsWith("http") || ref.startsWith("/") ? ref : img(ref);
 
 export const BEST_SELLERS: Product[] = [
   { id: "cuttack-chanachur", name: "Cuttack Chanachur", price: 160, rating: 4.8, reviews: 124, image: pic(W.chanachur) },

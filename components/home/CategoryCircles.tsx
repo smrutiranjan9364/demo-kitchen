@@ -31,16 +31,22 @@ export default async function CategoryCircles() {
             >
               <span className="relative h-24 w-24 overflow-hidden rounded-2xl bg-cream-soft p-2 shadow-sm ring-1 ring-black/5 transition duration-300 group-hover/item:-translate-y-1 group-hover/item:shadow-lg group-hover/item:ring-2 group-hover/item:ring-brand">
                 <span className="relative block h-full w-full overflow-hidden rounded-xl">
-                  <Image
-                    src={cat.image}
-                    alt={cat.label}
-                    fill
-                    sizes="80px"
-                    className="object-cover"
-                  />
+                  {cat.image ? (
+                    <Image
+                      src={cat.image}
+                      alt={cat.label}
+                      fill
+                      sizes="80px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-cream to-cream-soft text-4xl">
+                      <span aria-hidden>{cat.emoji ?? "🛒"}</span>
+                    </span>
+                  )}
                 </span>
               </span>
-              <span className="text-base font-semibold text-gray-700 transition group-hover/item:text-brand">
+              <span className="line-clamp-2 w-28 text-center text-sm font-semibold leading-tight text-gray-700 transition group-hover/item:text-brand">
                 {cat.label}
               </span>
             </Link>

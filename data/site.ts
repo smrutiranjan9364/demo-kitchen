@@ -84,92 +84,130 @@ export const getDistrictBySlug = (slug: string) =>
 export type Category = {
   label: string;
   href: string;
-  image: string;
+  // Optional product photo. Most categories are represented by an `emoji`
+  // tile instead, so this may be absent.
+  image?: string;
+  emoji?: string;
   description?: string;
   count?: number;
 };
 
-const catImg = (id: string) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=80`;
-
 // All categories shown on the /categories page and used as homepage circles.
+// Represented by emoji tiles (no sourced photography), so `image` is omitted.
 export const CATEGORIES: Category[] = [
+  {
+    label: "Grains & Cereals",
+    href: "/category/grains-cereals",
+    emoji: "🌾",
+    description: "Wholesome wheat, barley and native cereal grains.",
+  },
+  {
+    label: "Pulses & Lentils",
+    href: "/category/pulses-lentils",
+    emoji: "🫘",
+    description: "Toor, moong, biri and harada dals.",
+  },
+  {
+    label: "Spices & Masala",
+    href: "/category/spices",
+    emoji: "🌶️",
+    description: "Panch phutana, Kandhamal haladi and dalma masala.",
+  },
+  {
+    label: "Rice & Rice Products",
+    href: "/category/rice-products",
+    emoji: "🍚",
+    description: "Aromatic rice, chuda, mudhi and rice flour.",
+  },
+  {
+    label: "Millets & Millet Products",
+    href: "/category/millets",
+    emoji: "🌾",
+    description: "Ragi, mandia and wholesome millet staples.",
+  },
+  {
+    label: "Chhatua & Sattu",
+    href: "/category/chhatua-sattu",
+    emoji: "🥣",
+    description: "Roasted multigrain energy flour, ready to mix.",
+  },
   {
     label: "Snacks",
     href: "/category/snacks",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Cofresh_Bombay_Mix.jpg/960px-Cofresh_Bombay_Mix.jpg",
-    description: "Cuttack chanachur, mudhi mixture, chuda bhaja and ganthia.",
-    count: 24,
+    emoji: "🥨",
+    description: "Cuttack chanachur, mudhi mixture and ganthia.",
   },
   {
-    label: "Sweets",
-    href: "/category/sweets",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Bhubaneswar_Odia_Meetup_2013Jan29-23.JPG/960px-Bhubaneswar_Odia_Meetup_2013Jan29-23.JPG",
-    description: "Chhena poda, pahala rasgulla, chhena jhili and puri khaja.",
-    count: 18,
-  },
-  {
-    label: "Spices",
-    href: "/category/spices",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Turmeric_Powder_Spelled_Out.jpg/960px-Turmeric_Powder_Spelled_Out.jpg",
-    description: "Panch phutana, Kandhamal haladi and dalma masala.",
-    count: 12,
+    label: "Pitha & Traditional Foods",
+    href: "/category/pitha",
+    emoji: "🫓",
+    description: "Manda, arisa, kakara and poda pitha.",
   },
   {
     label: "Pickles & Chutneys",
     href: "/category/pickles",
-    image: catImg("1600271886742-f049cd451bba"),
-    description: "Amba, ou khatta, tentuli and rasuna achar.",
-    count: 16,
+    emoji: "🥫",
+    description: "Amba, ou khatta and rasuna achar.",
   },
   {
-    label: "Papad & Badi",
-    href: "/category/papad-badi",
-    image: catImg("1631452180519-c014fe946bc7"),
-    description: "Sun-dried papad and homestyle lentil badi.",
-    count: 9,
+    label: "Nuts & Dry Fruits",
+    href: "/category/nuts-dry-fruits",
+    emoji: "🥜",
+    description: "Premium almonds, cashews and dried fruit.",
   },
   {
-    label: "Pitha",
-    href: "/category/pitha",
-    image: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/SIJHA_MANDA.jpg/960px-SIJHA_MANDA.jpg",
-    description: "Manda, arisa, kakara, enduri and poda pitha.",
-    count: 11,
+    label: "Honey & Natural Products",
+    href: "/category/honey",
+    emoji: "🍯",
+    description: "Raw forest honey and natural wellness picks.",
   },
   {
-    label: "Rice & Grains",
-    href: "/category/rice-grains",
-    image: catImg("1447279506476-3faec8071eee"),
-    description: "Aromatic rice, millets and wholesome grains.",
-    count: 8,
+    label: "Tea & Coffee",
+    href: "/category/tea-coffee",
+    emoji: "☕",
+    description: "Aromatic garden teas and fresh-ground coffee.",
   },
   {
-    label: "Beverages",
-    href: "/category/beverages",
-    image: catImg("1547514701-42782101795e"),
-    description: "Sharbat, herbal mixes and refreshing drinks.",
-    count: 7,
+    label: "Coconut & Coconut Products",
+    href: "/category/coconut",
+    emoji: "🥥",
+    description: "Coconut, oil and freshly grated goodness.",
   },
   {
-    label: "Bakery",
-    href: "/category/bakery",
-    image: catImg("1509440159596-0249088772ff"),
-    description: "Freshly baked biscuits, rusks and cakes.",
-    count: 10,
+    label: "Forest & Tribal Products",
+    href: "/category/forest-tribal",
+    emoji: "🌿",
+    description: "Mahua, kendu and tribal-sourced specialities.",
   },
   {
-    label: "Dry Fruits & Nuts",
-    href: "/category/dry-fruits",
-    image: catImg("1610832958506-aa56368176cf"),
-    description: "Premium nuts, seeds and dried fruit.",
-    count: 13,
+    label: "Sweets & Confectionery",
+    href: "/category/sweets",
+    emoji: "🍬",
+    description: "Chhena poda, rasgulla and puri khaja.",
   },
   {
-    label: "Gift Hampers",
-    href: "/category/gift-hampers",
-    image: catImg("1626074353765-517a681e40be"),
-    description: "Curated festive boxes packed with tradition.",
-    count: 6,
+    label: "Fruits & Fruit Products",
+    href: "/category/fruits",
+    emoji: "🥭",
+    description: "Seasonal fruit, jams and fruit preserves.",
+  },
+  {
+    label: "Dried Vegetables & Food Products",
+    href: "/category/dried-vegetables",
+    emoji: "🥬",
+    description: "Sun-dried vegetables, badi and papad.",
+  },
+  {
+    label: "Dairy & Milk Products",
+    href: "/category/dairy",
+    emoji: "🥛",
+    description: "Fresh chhena, ghee and milk sweets.",
+  },
+  {
+    label: "Salt & Traditional Ingredients",
+    href: "/category/salt",
+    emoji: "🧂",
+    description: "Sendha salt and everyday pantry basics.",
   },
 ];
 
