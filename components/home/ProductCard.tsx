@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import type { Product } from "@/data/products";
+import { isSoldOut, type Product } from "@/data/products";
 import AddToCartButton from "./AddToCartButton";
+import VegMark from "@/components/product/VegMark";
 
 export default function ProductCard({
   product,
@@ -25,6 +26,11 @@ export default function ProductCard({
             {product.discount}% OFF
           </span>
         ) : null}
+        {isSoldOut(product) ? (
+          <span className="absolute right-2 top-2 z-10 rounded bg-gray-800/85 px-2 py-0.5 text-[10px] font-bold text-white">
+            SOLD OUT
+          </span>
+        ) : null}
         {product.image ? (
           <Image
             src={product.image}
@@ -44,18 +50,27 @@ export default function ProductCard({
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2 p-3">
-        <Heading className="text-sm font-medium text-gray-800">
+        <Heading className="flex items-start gap-1.5 text-sm font-medium text-gray-800">
+          <VegMark veg={product.veg !== false} className="mt-0.5 h-3.5 w-3.5" />
           <Link href={href} className="hover:text-brand">
             {product.name}
           </Link>
         </Heading>
 
         <div className="flex items-center gap-1.5 text-xs">
-          <span className="flex items-center gap-1 rounded bg-rating px-1.5 py-0.5 font-semibold text-white">
-            <StarIcon className="h-3 w-3" />
-            {product.rating.toFixed(1)}
-          </span>
-          <span className="text-gray-500">({product.reviews})</span>
+          {product.reviews > 0 ? (
+            <>
+              <span className="flex items-center gap-1 rounded bg-rating px-1.5 py-0.5 font-semibold text-white">
+                <StarIcon className="h-3 w-3" />
+                {product.rating.toFixed(1)}
+              </span>
+              <span className="text-gray-500">({product.reviews})</span>
+            </>
+          ) : (
+            <span className="rounded bg-cream px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-brand">
+              NEW
+            </span>
+          )}
         </div>
 
         <div className="mt-auto flex items-baseline gap-2">
@@ -66,6 +81,9 @@ export default function ProductCard({
             <span className="text-xs text-gray-400 line-through">
               ₹{product.oldPrice.toFixed(2)}
             </span>
+          ) : null}
+          {product.weight ? (
+            <span className="ml-auto text-xs text-gray-500">{product.weight}</span>
           ) : null}
         </div>
 

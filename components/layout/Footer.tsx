@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { FOOTER_MENU, FOOTER_LEGAL, CONTACT } from "@/data/site";
+import { getSettings } from "@/lib/store";
 
-export default function Footer() {
+export default async function Footer() {
+  const { fssai } = await getSettings();
   return (
     <footer className="bg-brand text-cream">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-10 px-6 py-14 md:grid-cols-3">
@@ -75,7 +77,8 @@ export default function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-cream/15">
         <div className="mx-auto max-w-7xl px-6 py-6 text-center text-xs text-cream/70">
-          <p>© 2024 Odia Kitchen. All rights reserved. Crafted with heritage.</p>
+          <p>© {new Date().getFullYear()} Odia Kitchen. All rights reserved. Crafted with heritage.</p>
+          {fssai ? <p className="mt-1">FSSAI Lic. No. {fssai}</p> : null}
           <div className="mt-2 flex flex-wrap justify-center gap-x-4 gap-y-1">
             {FOOTER_LEGAL.map((item) => item.href ? (
               <Link key={item.label} href={item.href} className="hover:text-white">

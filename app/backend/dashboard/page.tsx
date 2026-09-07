@@ -45,9 +45,13 @@ export default async function OverviewPage() {
     .slice(0, 6);
   const maxCat = Math.max(1, ...topCats.map((c) => c.count ?? 0));
 
+  // Tracked products at or below 5 units — the ones to make more of today.
+  const lowStock = products.filter((p) => p.stock != null && p.stock <= 5).length;
+
   const stats = [
     { label: "Revenue", value: `₹${revenue.toFixed(0)}`, tint: "text-rating", href: "/backend/dashboard/orders" },
     { label: "Orders", value: orders.length, tint: "text-brand", href: "/backend/dashboard/orders" },
+    { label: "Low stock", value: lowStock, tint: lowStock > 0 ? "text-red-600" : "text-gray-900", href: "/backend/dashboard/products" },
     { label: "Products", value: products.length, tint: "text-gray-900", href: "/backend/dashboard/products" },
     { label: "Categories", value: categories.length, tint: "text-gray-900", href: "/backend/dashboard/categories" },
   ];
@@ -60,7 +64,7 @@ export default async function OverviewPage() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
         {stats.map((s) => (
           <Link
             key={s.label}

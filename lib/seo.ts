@@ -81,6 +81,7 @@ export const SEO_PAGES = {
   "/returns": { title: "Return & Refund Policy", description: "Read Odia Kitchen's policy for returns, replacements and refunds. Learn how to report an issue with your food order and contact the team.", breadcrumb: "Return & Refund Policy" },
   "/cart": { title: "Your Shopping Cart", description: "Review the items in your Odia Kitchen shopping cart before checkout.", noindex: true, canonical: false },
   "/checkout": { title: "Checkout", description: "Complete your Odia Kitchen order and enter your delivery details.", noindex: true, canonical: false },
+  "/account": { title: "Your Account", description: "Your Odia Kitchen orders and details.", noindex: true, canonical: false },
   "/offline": { title: "You're Offline", description: "Reconnect to continue browsing Odia Kitchen.", noindex: true, canonical: false },
   "/backend": { title: "Admin Login", description: "Sign in to manage Odia Kitchen.", noindex: true, canonical: false },
 } satisfies Record<string, Omit<SeoPage, "path">>;

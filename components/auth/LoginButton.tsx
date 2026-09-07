@@ -1,16 +1,33 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useState } from "react";
 
 // The form is only downloaded when a visitor opens the account dialog.
 const LoginModal = dynamic(() => import("./LoginModal"));
 
-export default function LoginButton() {
+export default function LoginButton({
+  customer,
+  label = "Login",
+  className = "flex items-center gap-1.5 hover:opacity-80",
+}: {
+  customer?: { name: string } | null;
+  label?: string;
+  className?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [notice, setNotice] = useState("");
   const close = useCallback(() => setOpen(false), []);
+
+  if (customer) {
+    return (
+      <Link href="/account" aria-label="Your account" className={className}>
+        <UserIcon className="h-5 w-5 sm:h-4 sm:w-4" />
+        <span className="hidden max-w-[8rem] truncate sm:inline">{customer.name.split(" ")[0]}</span>
+      </Link>
+    );
+  }
 
   return (
     <>
@@ -19,20 +36,12 @@ export default function LoginButton() {
         onClick={() => setOpen(true)}
         aria-label="Login"
         aria-haspopup="dialog"
-        className="flex items-center gap-1.5 hover:opacity-80"
+        className={className}
       >
         <UserIcon className="h-5 w-5 sm:h-4 sm:w-4" />
-        <span className="hidden sm:inline">Login</span>
+        <span className="hidden sm:inline">{label}</span>
       </button>
-      {open ? (
-        <LoginModal
-          onClose={close}
-          mode={mode}
-          setMode={setMode}
-          notice={notice}
-          setNotice={setNotice}
-        />
-      ) : null}
+      {open ? <LoginModal onClose={close} mode={mode} setMode={setMode} /> : null}
     </>
   );
 }

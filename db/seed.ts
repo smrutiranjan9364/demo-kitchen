@@ -36,7 +36,7 @@ async function main() {
     for (const p of ALL_PRODUCTS) {
       await sql`
         INSERT INTO products (id, name, price, rating, reviews, category, image, old_price, discount)
-        VALUES (${p.id}, ${p.name}, ${p.price}, ${p.rating}, ${p.reviews},
+        VALUES (${p.id}, ${p.name}, ${p.price}, 0, 0,
                 ${p.category ?? null}, ${p.image ?? null}, ${p.oldPrice ?? null}, ${p.discount ?? null})
         ON CONFLICT (id) DO NOTHING`;
     }

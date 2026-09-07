@@ -1,21 +1,30 @@
 import { routeMetadata } from "@/lib/seo";
 import Link from "next/link";
-import CheckoutClient from "@/components/checkout/CheckoutClient";
-import { BEST_SELLERS } from "@/data/products";
+import CheckoutClient, { type CheckoutPrefill } from "@/components/checkout/CheckoutClient";
+import { getOrdersForCustomer, getSettings } from "@/lib/store";
+import { getCurrentCustomer } from "@/lib/customer";
 
 // Server-rendered on every request so it can reflect live data / settings.
 export const dynamic = "force-dynamic";
 
 export const metadata = routeMetadata("/checkout");
 
-// Sample order (replace with real cart state / store).
-const items = [
-  { ...BEST_SELLERS[0], qty: 2 },
-  { ...BEST_SELLERS[2], qty: 1 },
-  { ...BEST_SELLERS[3], qty: 1 },
-];
+export default async function CheckoutPage() {
+  // Quote the same delivery rates the orders API will charge.
+  const [{ deliveryFee, freeDeliveryOver, deliveryPincodes }, customer] = await Promise.all([
+    getSettings(),
+    getCurrentCustomer(),
+  ]);
 
-export default function CheckoutPage() {
+  // Signed in: prefill from the last order (full address) or the account.
+  let prefill: CheckoutPrefill | undefined;
+  if (customer) {
+    const [last] = await getOrdersForCustomer(customer.id);
+    prefill = last
+      ? { name: last.name, phone: last.phone, email: last.email, address: last.address, city: last.city, state: last.state, pincode: last.pincode }
+      : { name: customer.name, phone: customer.phone, email: customer.email };
+  }
+
   return (
     <div className="bg-cream-soft">
       {/* Page header */}
@@ -38,7 +47,7 @@ export default function CheckoutPage() {
 
       {/* Content */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        <CheckoutClient items={items} />
+        <CheckoutClient rates={{ deliveryFee, freeDeliveryOver }} prefill={prefill} deliveryPincodes={deliveryPincodes} />
       </div>
     </div>
   );

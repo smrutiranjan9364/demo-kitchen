@@ -23,8 +23,14 @@ type FormState = {
   image: string;
   oldPrice: string;
   discount: string;
-  rating: string;
-  reviews: string;
+  veg: boolean;
+  stock: string; // "" = not tracked
+  weight: string;
+  description: string;
+  ingredients: string;
+  allergens: string;
+  shelfLife: string;
+  storage: string;
 };
 
 const EMPTY: FormState = {
@@ -35,8 +41,14 @@ const EMPTY: FormState = {
   image: "",
   oldPrice: "",
   discount: "",
-  rating: "4.5",
-  reviews: "0",
+  veg: true,
+  stock: "",
+  weight: "",
+  description: "",
+  ingredients: "",
+  allergens: "",
+  shelfLife: "",
+  storage: "",
 };
 
 function toForm(p: Product): FormState {
@@ -48,8 +60,14 @@ function toForm(p: Product): FormState {
     image: p.image ?? "",
     oldPrice: p.oldPrice != null ? String(p.oldPrice) : "",
     discount: p.discount != null ? String(p.discount) : "",
-    rating: String(p.rating),
-    reviews: String(p.reviews),
+    veg: p.veg !== false,
+    stock: p.stock != null ? String(p.stock) : "",
+    weight: p.weight ?? "",
+    description: p.description ?? "",
+    ingredients: p.ingredients ?? "",
+    allergens: p.allergens ?? "",
+    shelfLife: p.shelfLife ?? "",
+    storage: p.storage ?? "",
   };
 }
 
@@ -62,8 +80,14 @@ function toPayload(f: FormState) {
     image: f.image.trim() || undefined,
     oldPrice: f.oldPrice ? Number(f.oldPrice) : undefined,
     discount: f.discount ? Number(f.discount) : undefined,
-    rating: f.rating ? Number(f.rating) : undefined,
-    reviews: f.reviews ? Number(f.reviews) : undefined,
+    veg: f.veg,
+    stock: f.stock.trim() === "" ? null : Math.max(0, Math.floor(Number(f.stock))),
+    weight: f.weight.trim() || null,
+    description: f.description.trim() || null,
+    ingredients: f.ingredients.trim() || null,
+    allergens: f.allergens.trim() || null,
+    shelfLife: f.shelfLife.trim() || null,
+    storage: f.storage.trim() || null,
   };
 }
 
@@ -128,7 +152,7 @@ export default function ProductsAdmin({
     setEditingId(null);
     setError("");
   }
-  function set<K extends keyof FormState>(key: K, value: string) {
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
@@ -213,6 +237,16 @@ export default function ProductsAdmin({
           <div className="grid flex-1 gap-4">
             <Input label="Name" value={form.name} onChange={(v) => set("name", v)} />
             <Input label="Price (₹)" type="number" value={form.price} onChange={(v) => set("price", v)} />
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={form.veg}
+                onChange={(e) => set("veg", e.target.checked)}
+                className="h-4 w-4 accent-brand"
+              />
+              Vegetarian
+              <span className="text-xs text-gray-400">(untick for egg / meat / fish)</span>
+            </label>
             {!lockedCategory && (
               <label className="block">
                 <span className="mb-1 block text-xs font-medium text-gray-600">Category</span>
@@ -234,13 +268,23 @@ export default function ProductsAdmin({
               />
             </label>
             <ImageUpload value={form.image} onChange={(v) => set("image", v)} />
+            <Textarea label="Description" rows={3} value={form.description} onChange={(v) => set("description", v)} hint="Shown on the product page. Blank uses the generic house description." />
+            <Textarea label="Ingredients" rows={2} value={form.ingredients} onChange={(v) => set("ingredients", v)} />
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Allergens" value={form.allergens} onChange={(v) => set("allergens", v)} />
+              <Input label="Shelf life" value={form.shelfLife} onChange={(v) => set("shelfLife", v)} />
+            </div>
+            <Input label="Storage" value={form.storage} onChange={(v) => set("storage", v)} />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Input label="Stock" type="number" value={form.stock} onChange={(v) => set("stock", v)} />
+                <p className="mt-1 text-[11px] text-gray-400">Leave blank to not track. 0 = sold out.</p>
+              </div>
+              <Input label="Pack size" value={form.weight} onChange={(v) => set("weight", v)} />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <Input label="Old price (₹)" type="number" value={form.oldPrice} onChange={(v) => set("oldPrice", v)} />
               <Input label="Discount (%)" type="number" value={form.discount} onChange={(v) => set("discount", v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input label="Rating" type="number" value={form.rating} onChange={(v) => set("rating", v)} />
-              <Input label="Reviews count" type="number" value={form.reviews} onChange={(v) => set("reviews", v)} />
             </div>
             {error ? <p className="text-sm text-red-600">{error}</p> : null}
           </div>
@@ -336,6 +380,7 @@ export default function ProductsAdmin({
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">District</th>
               <th className="px-4 py-3">Price</th>
+              <th className="px-4 py-3">Stock</th>
               <th className="px-4 py-3">Rating</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -343,7 +388,7 @@ export default function ProductsAdmin({
           <tbody>
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-500">
                   No products match your filters.
                 </td>
               </tr>
@@ -362,9 +407,23 @@ export default function ProductsAdmin({
                 </td>
                 <td className="px-4 py-3 text-gray-500">{p.category ?? "—"}</td>
                 <td className="px-4 py-3 text-gray-500">{districtName(p.district) ?? "—"}</td>
-                <td className="px-4 py-3 text-gray-800">₹{p.price}</td>
+                <td className="px-4 py-3 text-gray-800">
+                  ₹{p.price}
+                  {p.weight ? <span className="ml-1 text-xs text-gray-400">/ {p.weight}</span> : null}
+                </td>
+                <td className="px-4 py-3">
+                  {p.stock == null ? (
+                    <span className="text-gray-400">—</span>
+                  ) : p.stock === 0 ? (
+                    <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">Sold out</span>
+                  ) : p.stock <= 5 ? (
+                    <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">{p.stock} left</span>
+                  ) : (
+                    <span className="text-gray-700">{p.stock}</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-500">
-                  {p.rating} ({p.reviews})
+                  {p.reviews > 0 ? `${p.rating.toFixed(1)} (${p.reviews})` : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
@@ -428,6 +487,33 @@ export default function ProductsAdmin({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function Textarea({
+  label,
+  value,
+  onChange,
+  rows = 3,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+  hint?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium text-gray-600">{label}</span>
+      <textarea
+        value={value}
+        rows={rows}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+      />
+      {hint ? <span className="mt-1 block text-[11px] text-gray-400">{hint}</span> : null}
+    </label>
   );
 }
 

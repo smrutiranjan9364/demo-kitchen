@@ -12,6 +12,8 @@ export default function SettingsAdmin({ initial }: { initial: Settings }) {
     phone: initial.phone,
     deliveryFee: String(initial.deliveryFee),
     freeDeliveryOver: String(initial.freeDeliveryOver),
+    fssai: initial.fssai,
+    deliveryPincodes: initial.deliveryPincodes,
   });
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -36,6 +38,8 @@ export default function SettingsAdmin({ initial }: { initial: Settings }) {
           phone: form.phone,
           deliveryFee: Number(form.deliveryFee),
           freeDeliveryOver: Number(form.freeDeliveryOver),
+          fssai: form.fssai,
+          deliveryPincodes: form.deliveryPincodes,
         }),
       });
       if (!res.ok) throw new Error();
@@ -63,6 +67,12 @@ export default function SettingsAdmin({ initial }: { initial: Settings }) {
             </div>
             <Input label="Contact email" type="email" value={form.email} onChange={(v) => set("email", v)} />
             <Input label="Contact phone" value={form.phone} onChange={(v) => set("phone", v)} />
+            <div className="sm:col-span-2">
+              <Input label="FSSAI licence number" value={form.fssai} onChange={(v) => set("fssai", v)} />
+              <p className="mt-1 text-xs text-gray-400">
+                Required on any site selling food in India. Shown in the storefront footer once filled in.
+              </p>
+            </div>
           </div>
         </fieldset>
 
@@ -71,6 +81,13 @@ export default function SettingsAdmin({ initial }: { initial: Settings }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <Input label="Delivery fee (₹)" type="number" value={form.deliveryFee} onChange={(v) => set("deliveryFee", v)} />
             <Input label="Free delivery over (₹)" type="number" value={form.freeDeliveryOver} onChange={(v) => set("freeDeliveryOver", v)} />
+            <div className="sm:col-span-2">
+              <Input label="Serviceable pincodes" value={form.deliveryPincodes} onChange={(v) => set("deliveryPincodes", v)} />
+              <p className="mt-1 text-xs text-gray-400">
+                Comma-separated prefixes, e.g. <code className="rounded bg-cream-soft px-1">751, 752, 7530</code>.
+                Checkout rejects anything else. Leave blank to deliver everywhere.
+              </p>
+            </div>
           </div>
         </fieldset>
 

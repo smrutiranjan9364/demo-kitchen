@@ -9,6 +9,8 @@ import {
   getProduct,
   getProducts,
   getRelated,
+  getRatingSummary,
+  withLiveRating,
   type AdminDistrict,
 } from "@/lib/store";
 
@@ -38,9 +40,10 @@ const getCatalog = cache(async (): Promise<Map<string, Product>> => {
   const products = new Map((await getProducts()).map((product) => [product.id, product]));
   // These curated items have always existed independently of the DB. Do not
   // reintroduce arbitrary seeded products that an administrator has deleted.
-  for (const product of [...BEST_SELLERS, ...TOP_DEALS]) {
-    if (!products.has(product.id)) products.set(product.id, product);
-  }
+  const curated = [...BEST_SELLERS, ...TOP_DEALS].filter((product) => !products.has(product.id));
+  // Their seeded ratings are demo numbers; real ones come from approved reviews.
+  const live = await getRatingSummary(curated.map((product) => product.id));
+  for (const product of curated) products.set(product.id, withLiveRating(product, live));
   return products;
 });
 

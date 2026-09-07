@@ -9,6 +9,7 @@
 // The exported function names and signatures are unchanged from the previous
 // file-backed implementation, so no callers needed to change.
 import { cache } from "react";
+import type { TransactionSql } from "postgres";
 import { sql } from "@/lib/db";
 import {
   BEST_SELLERS,
@@ -23,6 +24,7 @@ import {
   type District,
 } from "@/data/site";
 import { ALL_RIGHTS, type Right } from "@/lib/permissions";
+import type { OrderStatus } from "@/lib/orders";
 
 function slugify(s: string): string {
   return (
@@ -51,6 +53,14 @@ type ProductRow = {
   image: string | null;
   old_price: number | null;
   discount: number | null;
+  veg: boolean;
+  stock: number | null;
+  weight: string | null;
+  description: string | null;
+  ingredients: string | null;
+  allergens: string | null;
+  shelf_life: string | null;
+  storage: string | null;
 };
 
 function toProduct(r: ProductRow): AdminProduct {
@@ -65,6 +75,14 @@ function toProduct(r: ProductRow): AdminProduct {
     image: r.image ?? undefined,
     oldPrice: r.old_price ?? undefined,
     discount: r.discount ?? undefined,
+    veg: r.veg,
+    stock: r.stock ?? undefined,
+    weight: r.weight ?? undefined,
+    description: r.description ?? undefined,
+    ingredients: r.ingredients ?? undefined,
+    allergens: r.allergens ?? undefined,
+    shelfLife: r.shelf_life ?? undefined,
+    storage: r.storage ?? undefined,
   };
 }
 
@@ -82,7 +100,10 @@ export const getProduct = cache(async (id: string): Promise<AdminProduct | undef
   // pages are linked by their own ids and aren't part of the editable set.
   // A deleted DB catalog item must stay deleted. Only the explicitly curated
   // homepage/deal products exist independently of the editable DB catalog.
-  return [...BEST_SELLERS, ...TOP_DEALS].find((product) => product.id === id);
+  const curated = [...BEST_SELLERS, ...TOP_DEALS].find((product) => product.id === id);
+  if (!curated) return undefined;
+  // Its seeded rating is demo data; overlay the real one from approved reviews.
+  return withLiveRating(curated, await getRatingSummary([curated.id]));
 });
 
 export const getProductsByCategory = cache(async (slug: string): Promise<AdminProduct[]> => {
@@ -113,19 +134,30 @@ export type ProductInput = {
   category?: string;
   district?: string;
   image?: string;
-  rating?: number;
-  reviews?: number;
   oldPrice?: number;
   discount?: number;
+  veg?: boolean;
+  stock?: number | null; // null clears tracking
+  weight?: string | null;
+  description?: string | null;
+  ingredients?: string | null;
+  allergens?: string | null;
+  shelfLife?: string | null;
+  storage?: string | null;
 };
 
 export async function createProduct(input: ProductInput): Promise<AdminProduct> {
   const id = `${slugify(input.name)}-${Date.now().toString(36)}`;
   const rows = await sql<ProductRow[]>`
-    INSERT INTO products (id, name, price, rating, reviews, category, district, image, old_price, discount)
-    VALUES (${id}, ${input.name}, ${input.price}, ${input.rating ?? 4.5}, ${input.reviews ?? 0},
+    INSERT INTO products (id, name, price, rating, reviews, category, district, image, old_price, discount, veg, stock, weight,
+                          description, ingredients, allergens, shelf_life, storage)
+    VALUES (${id}, ${input.name}, ${input.price}, 0, 0,
             ${input.category ?? null}, ${input.district ?? null}, ${input.image ?? null},
-            ${input.oldPrice ?? null}, ${input.discount ?? null})
+            ${input.oldPrice ?? null}, ${input.discount ?? null}, ${input.veg ?? true},
+            ${input.stock ?? null}, ${input.weight?.trim() || null},
+            ${input.description?.trim() || null}, ${input.ingredients?.trim() || null},
+            ${input.allergens?.trim() || null}, ${input.shelfLife?.trim() || null},
+            ${input.storage?.trim() || null})
     RETURNING *`;
   return toProduct(rows[0]);
 }
@@ -141,13 +173,19 @@ export async function updateProduct(
     UPDATE products SET
       name      = ${patch.name ?? cur.name},
       price     = ${patch.price ?? cur.price},
-      rating    = ${patch.rating ?? cur.rating},
-      reviews   = ${patch.reviews ?? cur.reviews},
       category  = ${patch.category ?? cur.category},
       district  = ${patch.district ?? cur.district},
       image     = ${patch.image ?? cur.image},
       old_price = ${patch.oldPrice ?? cur.old_price},
-      discount  = ${patch.discount ?? cur.discount}
+      discount  = ${patch.discount ?? cur.discount},
+      veg       = ${patch.veg ?? cur.veg},
+      stock     = ${patch.stock !== undefined ? patch.stock : cur.stock},
+      weight    = ${patch.weight !== undefined ? patch.weight?.trim() || null : cur.weight},
+      description = ${patch.description !== undefined ? patch.description?.trim() || null : cur.description},
+      ingredients = ${patch.ingredients !== undefined ? patch.ingredients?.trim() || null : cur.ingredients},
+      allergens   = ${patch.allergens !== undefined ? patch.allergens?.trim() || null : cur.allergens},
+      shelf_life  = ${patch.shelfLife !== undefined ? patch.shelfLife?.trim() || null : cur.shelf_life},
+      storage     = ${patch.storage !== undefined ? patch.storage?.trim() || null : cur.storage}
     WHERE id = ${id}
     RETURNING *`;
   return toProduct(rows[0]);
@@ -178,6 +216,7 @@ export type Order = {
   delivery: number;
   total: number;
   status: string;
+  customerId?: string; // undefined = guest checkout
 };
 
 type OrderRow = {
@@ -196,6 +235,7 @@ type OrderRow = {
   delivery: number;
   total: number;
   status: string;
+  customer_id: string | null;
 };
 
 function toOrder(r: OrderRow): Order {
@@ -215,6 +255,7 @@ function toOrder(r: OrderRow): Order {
     delivery: r.delivery,
     total: r.total,
     status: r.status,
+    customerId: r.customer_id ?? undefined,
   };
 }
 
@@ -223,20 +264,79 @@ export async function getOrders(): Promise<Order[]> {
   return rows.map(toOrder);
 }
 
+export async function getOrder(id: string): Promise<Order | undefined> {
+  const rows = await sql<OrderRow[]>`SELECT * FROM orders WHERE id = ${id} LIMIT 1`;
+  return rows[0] ? toOrder(rows[0]) : undefined;
+}
+
+export async function getOrdersForCustomer(customerId: string): Promise<Order[]> {
+  const rows = await sql<OrderRow[]>`
+    SELECT * FROM orders WHERE customer_id = ${customerId} ORDER BY created_at DESC`;
+  return rows.map(toOrder);
+}
+
+type OrderInput = Omit<Order, "id" | "createdAt" | "status"> & { status?: string };
+
 export async function createOrder(
-  data: Omit<Order, "id" | "createdAt" | "status"> & { status?: string },
+  data: OrderInput,
+  db: typeof sql | TransactionSql = sql,
 ): Promise<Order> {
   const id = `ord_${Date.now().toString(36)}`;
-  const rows = await sql<OrderRow[]>`
+  const rows = await db<OrderRow[]>`
     INSERT INTO orders (id, name, phone, email, address, city, state, pincode,
-                        payment, items, subtotal, delivery, total, status)
+                        payment, items, subtotal, delivery, total, status, customer_id)
     VALUES (${id}, ${data.name}, ${data.phone}, ${data.email},
             ${data.address ?? null}, ${data.city ?? null}, ${data.state ?? null},
             ${data.pincode ?? null}, ${data.payment},
-            ${sql.json(data.items)}, ${data.subtotal}, ${data.delivery},
-            ${data.total}, ${data.status ?? "Placed"})
+            ${db.json(data.items)}, ${data.subtotal}, ${data.delivery},
+            ${data.total}, ${data.status ?? "Placed"}, ${data.customerId ?? null})
     RETURNING *`;
   return toOrder(rows[0]);
+}
+
+export class OutOfStock extends Error {
+  constructor(productName: string, left: number) {
+    super(
+      left > 0
+        ? `Only ${left} of ${productName} left — please reduce the quantity in your cart.`
+        : `${productName} is sold out — please remove it from your cart.`,
+    );
+    this.name = "OutOfStock";
+  }
+}
+
+// Reserves stock for every line and saves the order in ONE transaction: a
+// sold-out item rolls the whole order back, and two shoppers racing for the
+// last unit can't both win. The conditional UPDATE is the whole trick — no
+// read-then-write. `stock IS NULL` (untracked) always passes and stays NULL.
+export async function placeOrder(data: OrderInput): Promise<Order> {
+  return sql.begin(async (tx) => {
+    for (const line of data.items) {
+      const reserved = await tx`
+        UPDATE products SET stock = stock - ${line.qty}
+        WHERE id = ${line.id} AND (stock IS NULL OR stock >= ${line.qty})
+        RETURNING id`;
+      if (reserved.length === 0) {
+        // No row updated: either genuinely short, or a curated static product
+        // with no DB row at all (nothing to reserve — let it through).
+        const [row] = await tx<{ stock: number | null }[]>`
+          SELECT stock FROM products WHERE id = ${line.id}`;
+        if (row) throw new OutOfStock(line.name, row.stock ?? 0);
+      }
+    }
+    return createOrder(data, tx);
+  }) as Promise<Order>;
+}
+
+// Moves an order along the fulfilment flow. `status` is validated against
+// ORDER_STATUSES in the route before it reaches here.
+export async function updateOrderStatus(
+  id: string,
+  status: OrderStatus,
+): Promise<Order | undefined> {
+  const rows = await sql<OrderRow[]>`
+    UPDATE orders SET status = ${status} WHERE id = ${id} RETURNING *`;
+  return rows[0] ? toOrder(rows[0]) : undefined;
 }
 
 /* ------------------------------ Reviews ----------------------------- */
@@ -249,6 +349,8 @@ export type StoredReview = {
   rating: number;
   comment: string;
   createdAt: string;
+  approved: boolean; // only approved reviews are shown on the storefront
+  customerId?: string; // the verified buyer who wrote it
 };
 
 type ReviewRow = {
@@ -259,6 +361,8 @@ type ReviewRow = {
   rating: number;
   comment: string;
   created_at: Date;
+  approved: boolean;
+  customer_id: string | null;
 };
 
 function toReview(r: ReviewRow): StoredReview {
@@ -270,6 +374,8 @@ function toReview(r: ReviewRow): StoredReview {
     rating: r.rating,
     comment: r.comment,
     createdAt: r.created_at.toISOString(),
+    approved: r.approved,
+    customerId: r.customer_id ?? undefined,
   };
 }
 
@@ -278,16 +384,211 @@ export async function getReviews(): Promise<StoredReview[]> {
   return rows.map(toReview);
 }
 
-export async function createReview(
-  data: Omit<StoredReview, "id" | "createdAt">,
-): Promise<StoredReview> {
-  const id = `rev_${Date.now().toString(36)}`;
+// Approved only, newest first. Shown publicly on the product page.
+export const getReviewsForProduct = cache(async (productId: string): Promise<StoredReview[]> => {
   const rows = await sql<ReviewRow[]>`
-    INSERT INTO reviews (id, product_id, product_name, name, rating, comment)
+    SELECT * FROM reviews WHERE product_id = ${productId} AND approved
+    ORDER BY created_at DESC`;
+  return rows.map(toReview);
+});
+
+export async function createReview(
+  data: Omit<StoredReview, "id" | "createdAt" | "approved">,
+): Promise<StoredReview> {
+  const id = `rev_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const rows = await sql<ReviewRow[]>`
+    INSERT INTO reviews (id, product_id, product_name, name, rating, comment, customer_id)
     VALUES (${id}, ${data.productId}, ${data.productName ?? null},
-            ${data.name}, ${data.rating}, ${data.comment})
+            ${data.name}, ${data.rating}, ${data.comment}, ${data.customerId ?? null})
     RETURNING *`;
   return toReview(rows[0]);
+}
+
+// products.rating / products.reviews cache the approved-review aggregate so
+// every product read stays a plain SELECT. Called whenever approval changes.
+async function refreshProductRating(productId: string): Promise<void> {
+  await sql`
+    UPDATE products SET
+      rating  = COALESCE((SELECT AVG(rating) FROM reviews WHERE product_id = ${productId} AND approved), 0),
+      reviews = (SELECT count(*) FROM reviews WHERE product_id = ${productId} AND approved)
+    WHERE id = ${productId}`;
+}
+
+export async function setReviewApproved(
+  id: string,
+  approved: boolean,
+): Promise<StoredReview | undefined> {
+  const rows = await sql<ReviewRow[]>`
+    UPDATE reviews SET approved = ${approved} WHERE id = ${id} RETURNING *`;
+  if (!rows[0]) return undefined;
+  await refreshProductRating(rows[0].product_id);
+  return toReview(rows[0]);
+}
+
+export async function deleteReview(id: string): Promise<boolean> {
+  const rows = await sql<{ product_id: string }[]>`
+    DELETE FROM reviews WHERE id = ${id} RETURNING product_id`;
+  if (!rows[0]) return false;
+  await refreshProductRating(rows[0].product_id);
+  return true;
+}
+
+// Has this customer got a non-cancelled order containing the product?
+// `items` is a JSONB array of {id, ...}; containment does the lookup.
+export async function hasPurchased(customerId: string, productId: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM orders
+    WHERE customer_id = ${customerId} AND status <> 'Cancelled'
+      AND items @> ${sql.json([{ id: productId }])}
+    LIMIT 1`;
+  return rows.length > 0;
+}
+
+export async function hasReviewed(customerId: string, productId: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM reviews WHERE customer_id = ${customerId} AND product_id = ${productId} LIMIT 1`;
+  return rows.length > 0;
+}
+
+// Live aggregates for products that have no DB row (curated static items), so
+// their seeded demo ratings never reach the page.
+export type RatingSummary = Map<string, { rating: number; reviews: number }>;
+
+export async function getRatingSummary(ids: string[]): Promise<RatingSummary> {
+  if (ids.length === 0) return new Map();
+  const rows = await sql<{ product_id: string; rating: number; n: number }[]>`
+    SELECT product_id, AVG(rating)::real AS rating, count(*)::int AS n
+    FROM reviews WHERE approved AND product_id = ANY(${ids})
+    GROUP BY product_id`;
+  return new Map(rows.map((r) => [r.product_id, { rating: r.rating, reviews: r.n }]));
+}
+
+export function withLiveRating(product: Product, live: RatingSummary): Product {
+  const r = live.get(product.id);
+  return { ...product, rating: r?.rating ?? 0, reviews: r?.reviews ?? 0 };
+}
+
+/* ----------------------------- Customers ---------------------------- */
+
+// A shopper with an account. Never carries the password hash — that only
+// leaves the store through findCustomerForLogin, for the login route.
+export type Customer = {
+  id: string;
+  email: string;
+  phone: string;
+  name: string;
+  createdAt: string;
+};
+
+type CustomerRow = {
+  id: string;
+  email: string;
+  phone: string;
+  name: string;
+  password_hash: string;
+  salt: string;
+  created_at: Date;
+};
+
+function toCustomer(r: CustomerRow): Customer {
+  return {
+    id: r.id,
+    email: r.email,
+    phone: r.phone,
+    name: r.name,
+    createdAt: r.created_at.toISOString(),
+  };
+}
+
+export const getCustomer = cache(async (id: string): Promise<Customer | undefined> => {
+  const rows = await sql<CustomerRow[]>`SELECT * FROM customers WHERE id = ${id} LIMIT 1`;
+  return rows[0] ? toCustomer(rows[0]) : undefined;
+});
+
+export async function findCustomerForLogin(
+  email: string,
+): Promise<(Customer & { passwordHash: string; salt: string }) | undefined> {
+  const rows = await sql<CustomerRow[]>`SELECT * FROM customers WHERE email = ${email} LIMIT 1`;
+  const r = rows[0];
+  return r ? { ...toCustomer(r), passwordHash: r.password_hash, salt: r.salt } : undefined;
+}
+
+// Returns null when the email is already registered.
+export async function createCustomer(data: {
+  name: string;
+  phone: string;
+  email: string;
+  passwordHash: string;
+  salt: string;
+}): Promise<Customer | null> {
+  const existing = await sql`SELECT 1 FROM customers WHERE email = ${data.email} LIMIT 1`;
+  if (existing.length > 0) return null;
+  const id = `cus_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const rows = await sql<CustomerRow[]>`
+    INSERT INTO customers (id, email, phone, name, password_hash, salt)
+    VALUES (${id}, ${data.email}, ${data.phone}, ${data.name}, ${data.passwordHash}, ${data.salt})
+    RETURNING *`;
+  return toCustomer(rows[0]);
+}
+
+/* ----------------------------- Messages ----------------------------- */
+
+// A contact-form submission.
+export type Message = {
+  id: string;
+  createdAt: string;
+  name: string;
+  email: string;
+  subject: string;
+  body: string;
+  handled: boolean;
+};
+
+type MessageRow = {
+  id: string;
+  created_at: Date;
+  name: string;
+  email: string;
+  subject: string;
+  body: string;
+  handled: boolean;
+};
+
+function toMessage(r: MessageRow): Message {
+  return {
+    id: r.id,
+    createdAt: r.created_at.toISOString(),
+    name: r.name,
+    email: r.email,
+    subject: r.subject,
+    body: r.body,
+    handled: r.handled,
+  };
+}
+
+export async function getMessages(): Promise<Message[]> {
+  const rows = await sql<MessageRow[]>`SELECT * FROM messages ORDER BY created_at DESC`;
+  return rows.map(toMessage);
+}
+
+export async function createMessage(
+  data: Omit<Message, "id" | "createdAt" | "handled">,
+): Promise<Message> {
+  const id = `msg_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const rows = await sql<MessageRow[]>`
+    INSERT INTO messages (id, name, email, subject, body)
+    VALUES (${id}, ${data.name}, ${data.email}, ${data.subject}, ${data.body})
+    RETURNING *`;
+  return toMessage(rows[0]);
+}
+
+export async function updateMessageHandled(
+  id: string,
+  handled: boolean,
+): Promise<Message | undefined> {
+  const rows = await sql<MessageRow[]>`
+    UPDATE messages SET handled = ${handled} WHERE id = ${id} RETURNING *`;
+  return rows[0] ? toMessage(rows[0]) : undefined;
 }
 
 /* ---------------------------- Categories ---------------------------- */
@@ -773,6 +1074,8 @@ export type Settings = {
   phone: string;
   deliveryFee: number;
   freeDeliveryOver: number;
+  fssai: string; // FSSAI licence number; "" until the owner enters it
+  deliveryPincodes: string; // pincode prefixes, "" = deliver everywhere
 };
 
 type SettingsRow = {
@@ -781,6 +1084,8 @@ type SettingsRow = {
   phone: string;
   delivery_fee: number;
   free_delivery_over: number;
+  fssai: string | null;
+  delivery_pincodes: string | null;
 };
 
 const DEFAULT_SETTINGS: Settings = {
@@ -789,6 +1094,8 @@ const DEFAULT_SETTINGS: Settings = {
   phone: CONTACT.phone,
   deliveryFee: 40,
   freeDeliveryOver: 500,
+  fssai: "",
+  deliveryPincodes: "",
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -810,6 +1117,8 @@ export async function getSettings(): Promise<Settings> {
     phone: r.phone,
     deliveryFee: r.delivery_fee,
     freeDeliveryOver: r.free_delivery_over,
+    fssai: r.fssai ?? "",
+    deliveryPincodes: r.delivery_pincodes ?? "",
   };
 }
 
@@ -827,6 +1136,12 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
       patch.freeDeliveryOver != null && !Number.isNaN(patch.freeDeliveryOver)
         ? patch.freeDeliveryOver
         : current.freeDeliveryOver,
+    // Unlike the others, an empty string is a valid value here (clears it).
+    fssai: typeof patch.fssai === "string" ? patch.fssai.trim() : current.fssai,
+    deliveryPincodes:
+      typeof patch.deliveryPincodes === "string"
+        ? patch.deliveryPincodes.trim()
+        : current.deliveryPincodes,
   };
   await sql`
     UPDATE settings SET
@@ -834,7 +1149,9 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
       email              = ${next.email},
       phone              = ${next.phone},
       delivery_fee       = ${next.deliveryFee},
-      free_delivery_over = ${next.freeDeliveryOver}
+      free_delivery_over = ${next.freeDeliveryOver},
+      fssai              = ${next.fssai || null},
+      delivery_pincodes  = ${next.deliveryPincodes || null}
     WHERE id = 1`;
   return next;
 }

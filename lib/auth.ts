@@ -1,31 +1,56 @@
-// Admin session auth with roles. The env-var account (ADMIN_USERNAME /
-// ADMIN_PASSWORD) is the bootstrap "super" admin. Additional "admin" users are
-// created by a super admin and stored in the data store (verified in the login
-// route — this module stays free of the fs store so it is safe to import from
-// the edge proxy). The session cookie is an HMAC-signed token.
+// Session auth. Two independent sessions live in two cookies:
+//   - admin    (ADMIN_COOKIE):    the env-var bootstrap "super" admin, or a
+//                                 store-managed "admin" user. 8-hour tokens.
+//   - customer (CUSTOMER_COOKIE): a shopper with an account. 30-day tokens.
+// Both are HMAC tokens signed with the same secret; lib/token.ts stamps a kind
+// on each so one can never be read as the other. This module is only the
+// cookie glue — it stays free of the data store so the edge proxy can import
+// ADMIN_COOKIE from it.
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import {
+  ADMIN_MAX_AGE,
+  CUSTOMER_MAX_AGE,
+  signToken,
+  verifyAdminToken,
+  verifyCustomerToken,
+  type Role,
+} from "@/lib/token";
 
 export const ADMIN_COOKIE = "ok_admin";
-const SESSION_MAX_AGE = 60 * 60 * 8; // 8 hours
+export const CUSTOMER_COOKIE = "ok_customer";
 
-export type Role = "super" | "admin";
+export type { Role };
 export type Session = { username: string; role: Role };
 
-type Payload = { u: string; r: Role; t: number };
-
-function secret(): string {
-  return process.env.ADMIN_SESSION_SECRET || "dev-insecure-secret-change-me";
+// Convenience fallbacks for local development only. Shipping a known signing
+// secret or a known admin password is a full takeover, so in production these
+// must be configured — there is no default to fall back to.
+function devFallback(value: string): string | null {
+  return process.env.NODE_ENV === "production" ? null : value;
 }
 
-// The bootstrap super-admin credentials from the environment.
+function secret(): string {
+  const configured = process.env.ADMIN_SESSION_SECRET;
+  if (configured) return configured;
+  const fallback = devFallback("dev-insecure-secret-change-me");
+  // No safe default exists: refuse to sign or verify sessions rather than sign
+  // them with a value an attacker already knows.
+  if (!fallback) throw new Error("ADMIN_SESSION_SECRET must be set in production.");
+  return fallback;
+}
+
+// The bootstrap super-admin credentials from the environment. When they are not
+// configured in production the bootstrap account is simply disabled — store-managed
+// admin users still sign in normally.
 export function checkSuperCredentials(username: string, password: string): boolean {
-  const u = process.env.ADMIN_USERNAME || "admin";
-  const p = process.env.ADMIN_PASSWORD || "admin123";
+  const u = process.env.ADMIN_USERNAME || devFallback("admin");
+  const p = process.env.ADMIN_PASSWORD || devFallback("admin123");
+  if (!u || !p) return false;
   return username === u && password === p;
 }
 
-/* ---- Password hashing (for store-managed admin users) ---- */
+/* ---- Password hashing (admin users and customers) ---- */
 
 export function hashPassword(password: string): { hash: string; salt: string } {
   const salt = crypto.randomBytes(16).toString("hex");
@@ -40,34 +65,14 @@ export function verifyPassword(password: string, hash: string, salt: string): bo
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
 
-/* ---- Session token ---- */
+/* ---- Admin session ---- */
 
 export function createToken(username: string, role: Role): string {
-  const payload = Buffer.from(
-    JSON.stringify({ u: username, r: role, t: Date.now() } satisfies Payload),
-  ).toString("base64url");
-  const sig = crypto.createHmac("sha256", secret()).update(payload).digest("base64url");
-  return `${payload}.${sig}`;
+  return signToken({ k: "admin", u: username, r: role, t: Date.now() }, secret());
 }
 
-export function verifyToken(token?: string | null): Payload | null {
-  if (!token) return null;
-  const [payload, sig] = token.split(".");
-  if (!payload || !sig) return null;
-  const expected = crypto.createHmac("sha256", secret()).update(payload).digest("base64url");
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString()) as Payload;
-    if (parsed.r !== "super" && parsed.r !== "admin") return null;
-    if (typeof parsed.t !== "number" || Date.now() - parsed.t > SESSION_MAX_AGE * 1000) {
-      return null;
-    }
-    return parsed;
-  } catch {
-    return null;
-  }
+export function verifyToken(token?: string | null) {
+  return verifyAdminToken(token, secret());
 }
 
 // Full session (username + role), or null.
@@ -92,7 +97,7 @@ export async function setAdminSession(username: string, role: Role): Promise<voi
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: SESSION_MAX_AGE,
+    maxAge: ADMIN_MAX_AGE,
     secure: process.env.NODE_ENV === "production",
   });
 }
@@ -100,4 +105,53 @@ export async function setAdminSession(username: string, role: Role): Promise<voi
 export async function clearAdminSession(): Promise<void> {
   const store = await cookies();
   store.set(ADMIN_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+}
+
+/* ---- Customer session ---- */
+
+// The signed-in customer's id, or null. Cheap: no database read.
+export async function getCustomerId(): Promise<string | null> {
+  const store = await cookies();
+  return verifyCustomerToken(store.get(CUSTOMER_COOKIE)?.value, secret())?.u ?? null;
+}
+
+export async function setCustomerSession(customerId: string): Promise<void> {
+  const store = await cookies();
+  store.set(CUSTOMER_COOKIE, signToken({ k: "customer", u: customerId, t: Date.now() }, secret()), {
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: CUSTOMER_MAX_AGE,
+    secure: process.env.NODE_ENV === "production",
+  });
+}
+
+export async function clearCustomerSession(): Promise<void> {
+  const store = await cookies();
+  store.set(CUSTOMER_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+}
+
+/* ---- Order tracking links ---- */
+
+// A guest's tracking link carries a signature of the order id — not the phone
+// number — so nothing personal sits in the URL, browser history or server logs.
+// Anyone holding the link can view that one order, which is the intent (it is
+// what we email them); the phone number is only ever sent in a POST body.
+export function orderTrackingToken(orderId: string): string {
+  return crypto
+    .createHmac("sha256", secret())
+    .update(`track:${orderId}`)
+    .digest("base64url")
+    .slice(0, 24);
+}
+
+export function verifyOrderTrackingToken(orderId: string, token: string | undefined): boolean {
+  if (!token) return false;
+  const a = Buffer.from(token);
+  const b = Buffer.from(orderTrackingToken(orderId));
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+
+export function orderTrackingPath(orderId: string): string {
+  return `/account/orders/${encodeURIComponent(orderId)}?t=${orderTrackingToken(orderId)}`;
 }

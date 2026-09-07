@@ -8,7 +8,7 @@ import { AdminUIProvider } from "./AdminUI";
 import type { Role } from "@/lib/auth";
 import type { Right } from "@/lib/permissions";
 
-type CountKey = "categories" | "districts" | "products" | "festival" | "orders" | "reviews" | "investments";
+type CountKey = "categories" | "districts" | "products" | "festival" | "orders" | "reviews" | "messages" | "investments";
 type NavItem = {
   label: string;
   href: string;
@@ -61,6 +61,7 @@ const SECTIONS: NavSection[] = [
     items: [
       { label: "Orders", href: "/backend/dashboard/orders", icon: "cart", countKey: "orders", right: "orders" },
       { label: "Reviews", href: "/backend/dashboard/reviews", icon: "star", countKey: "reviews", right: "reviews" },
+      { label: "Messages", href: "/backend/dashboard/messages", icon: "mail", countKey: "messages", right: "messages" },
     ],
   },
   {
@@ -346,6 +347,7 @@ type IconName =
   | "shield"
   | "gear"
   | "wallet"
+  | "mail"
   | "external";
 
 function Icon({ name, className }: { name: IconName; className?: string }) {
@@ -359,6 +361,13 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
     strokeLinejoin: "round" as const,
   };
   switch (name) {
+    case "mail":
+      return (
+        <svg {...p}>
+          <rect x="3" y="5" width="18" height="14" rx="2" />
+          <path d="m3 7 9 6 9-6" />
+        </svg>
+      );
     case "grid":
       return (
         <svg {...p}>

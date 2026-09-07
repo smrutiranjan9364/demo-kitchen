@@ -1,31 +1,49 @@
-import { createReview } from "@/lib/store";
+import { getCustomerId } from "@/lib/auth";
+import { createReview, getCustomer, getProduct, hasPurchased, hasReviewed } from "@/lib/store";
 
-// Public: called by the product page when a customer submits a review, so the
-// admin panel can see reviews left across the site.
+function bad(error: string, status = 400) {
+  return Response.json({ error }, { status });
+}
+
+// Public, but gated: only a signed-in customer who has bought the product may
+// review it, once. Reviews land unapproved and appear after moderation — the
+// purchase check + one-per-product rule is the rate limit.
 export async function POST(request: Request) {
-  let body: {
-    productId?: string;
-    productName?: string;
-    name?: string;
-    rating?: number;
-    comment?: string;
-  };
+  let body: { productId?: unknown; rating?: unknown; comment?: unknown };
   try {
     body = await request.json();
   } catch {
-    return Response.json({ error: "Invalid request" }, { status: 400 });
+    return bad("Invalid request");
   }
 
-  if (!body.productId || !body.rating || !body.comment) {
-    return Response.json({ error: "Missing fields" }, { status: 400 });
+  const productId = typeof body.productId === "string" ? body.productId.trim() : "";
+  const rating = Number(body.rating);
+  const comment = typeof body.comment === "string" ? body.comment.trim().slice(0, 1000) : "";
+  if (!productId) return bad("Product not found.", 404);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return bad("Please choose a star rating.");
+  if (comment.length < 3) return bad("Please write a short review.");
+
+  const customerId = await getCustomerId();
+  if (!customerId) return bad("Please log in to leave a review.", 401);
+
+  const [customer, product] = await Promise.all([getCustomer(customerId), getProduct(productId)]);
+  if (!customer) return bad("Please log in to leave a review.", 401);
+  if (!product) return bad("Product not found.", 404);
+
+  if (!(await hasPurchased(customerId, productId))) {
+    return bad("Reviews are open to customers who have bought this item.", 403);
+  }
+  if (await hasReviewed(customerId, productId)) {
+    return bad("You have already reviewed this item.", 409);
   }
 
   const review = await createReview({
-    productId: body.productId,
-    productName: body.productName,
-    name: (body.name || "Anonymous").slice(0, 60),
-    rating: Math.max(1, Math.min(5, Math.round(body.rating))),
-    comment: body.comment.slice(0, 1000),
+    productId,
+    productName: product.name,
+    name: customer.name,
+    rating,
+    comment,
+    customerId,
   });
 
   return Response.json({ ok: true, id: review.id }, { status: 201 });

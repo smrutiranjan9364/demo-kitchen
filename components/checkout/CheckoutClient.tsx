@@ -1,26 +1,95 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/data/products";
+import { useCart } from "@/components/cart/CartContext";
+import {
+  INDIAN_STATES,
+  PAYMENT_METHODS,
+  isServiceable,
+  parsePincodePrefixes,
+  priceOrder,
+  type DeliveryRates,
+} from "@/lib/orders";
 
-type CartLine = Product & { qty: number };
+// What the server confirmed it saved. Totals come back from the API rather
+// than the browser, so the shopper sees the amount actually recorded.
+type PlacedOrder = { id: string; total: number; trackUrl?: string };
 
-const DELIVERY_FEE = 40;
-const FREE_DELIVERY_OVER = 500;
-const PAYMENT_METHODS = ["Cash on Delivery", "UPI", "Card"] as const;
+// Known details for a signed-in shopper (their last order, else their account).
+export type CheckoutPrefill = Partial<
+  Record<"name" | "phone" | "email" | "address" | "city" | "state" | "pincode", string>
+>;
 
-export default function CheckoutClient({ items }: { items: CartLine[] }) {
-  const [placed, setPlaced] = useState(false);
+export default function CheckoutClient({
+  rates,
+  prefill,
+  deliveryPincodes,
+}: {
+  rates: DeliveryRates;
+  prefill?: CheckoutPrefill;
+  deliveryPincodes: string;
+}) {
+  const { lines: items, clear } = useCart();
+  // Pincode is controlled so we can say "we don't deliver there" before submit.
+  const [pincode, setPincode] = useState(prefill?.pincode ?? "");
+  const pincodeComplete = /^\d{6}$/.test(pincode.trim());
+  const serviceable = pincodeComplete && isServiceable(pincode, deliveryPincodes);
+  const hasServiceArea = parsePincodePrefixes(deliveryPincodes).length > 0;
+  const [placed, setPlaced] = useState<PlacedOrder | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const [payment, setPayment] = useState<string>(PAYMENT_METHODS[0]);
 
-  const subtotal = useMemo(
-    () => items.reduce((sum, it) => sum + it.price * it.qty, 0),
-    [items],
-  );
-  const delivery = subtotal >= FREE_DELIVERY_OVER ? 0 : DELIVERY_FEE;
-  const total = subtotal + delivery;
+  const { subtotal, delivery, total } = priceOrder(items, rates);
+
+  async function placeOrder(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+
+    const fd = new FormData(event.currentTarget);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: fd.get("name"),
+          phone: fd.get("phone"),
+          email: fd.get("email"),
+          address: fd.get("address"),
+          city: fd.get("city"),
+          state: fd.get("state"),
+          pincode: fd.get("pincode"),
+          payment,
+          // Only ids and quantities — the server prices the order itself.
+          items: items.map((it) => ({ id: it.id, qty: it.qty })),
+        }),
+      });
+      const data = (await response.json().catch(() => ({}))) as {
+        id?: string;
+        total?: number;
+        trackUrl?: string;
+        error?: string;
+      };
+      if (!response.ok || !data.id) {
+        throw new Error(data.error || "We could not place your order. Please try again.");
+      }
+      // Confirm only once the order is actually saved.
+      setPlaced({ id: data.id, total: data.total ?? total, trackUrl: data.trackUrl });
+      clear();
+    } catch (err) {
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : "We could not place your order. Please try again.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   if (placed) {
     return (
@@ -30,15 +99,44 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
         </div>
         <h2 className="font-serif text-2xl text-gray-900">Order placed!</h2>
         <p className="mt-2 text-sm text-gray-500">
-          Thank you for shopping with Odia Kitchen. A confirmation has been
-          sent to your email. Your order total was{" "}
-          <span className="font-semibold text-brand">₹{total.toFixed(2)}</span>.
+          Thank you for shopping with Odia Kitchen. Your order total is{" "}
+          <span className="font-semibold text-brand">₹{placed.total.toFixed(2)}</span>.
+          We&apos;ll call you on the number you gave us to confirm delivery.
+        </p>
+        <p className="mt-3 text-sm text-gray-500">
+          Order number{" "}
+          <span className="font-mono font-semibold text-gray-900">{placed.id}</span>
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
+          <Link
+            href={placed.trackUrl ?? "/account"}
+            className="inline-block bg-brand px-6 py-3 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light"
+          >
+            TRACK ORDER
+          </Link>
+          <Link
+            href="/"
+            className="inline-block border border-brand px-6 py-3 text-xs font-semibold tracking-widest text-brand transition hover:bg-cream"
+          >
+            BACK TO HOME
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="mx-auto max-w-lg rounded-xl bg-white p-12 text-center shadow-sm ring-1 ring-black/5">
+        <h2 className="font-serif text-xl text-gray-900">Your cart is empty</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          Add something to your cart before checking out.
         </p>
         <Link
-          href="/"
+          href="/categories"
           className="mt-6 inline-block bg-brand px-6 py-3 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light"
         >
-          BACK TO HOME
+          START SHOPPING
         </Link>
       </div>
     );
@@ -46,37 +144,7 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
 
   return (
     <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        const fd = new FormData(e.currentTarget);
-        // Persist the order so it shows in the admin panel (best-effort).
-        fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: fd.get("name"),
-            phone: fd.get("phone"),
-            email: fd.get("email"),
-            address: fd.get("address"),
-            city: fd.get("city"),
-            state: fd.get("state"),
-            pincode: fd.get("pincode"),
-            payment,
-            items: items.map((it) => ({
-              id: it.id,
-              name: it.name,
-              price: it.price,
-              qty: it.qty,
-            })),
-            subtotal,
-            delivery,
-            total,
-          }),
-        }).catch(() => {
-          /* still confirm to the shopper even if persistence fails */
-        });
-        setPlaced(true);
-      }}
+      onSubmit={placeOrder}
       className="grid grid-cols-1 gap-8 lg:grid-cols-3"
     >
       {/* Form fields */}
@@ -86,10 +154,10 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
             Contact details
           </legend>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Full name" name="name" placeholder="Rosy Sahoo" required />
-            <Field label="Phone" name="phone" type="tel" placeholder="6370649364" required />
+            <Field label="Full name" name="name" placeholder="Rosy Sahoo" defaultValue={prefill?.name} required />
+            <Field label="Phone" name="phone" type="tel" placeholder="6370649364" defaultValue={prefill?.phone} required />
             <div className="sm:col-span-2">
-              <Field label="Email" name="email" type="email" placeholder="you@example.com" required />
+              <Field label="Email" name="email" type="email" placeholder="you@example.com" defaultValue={prefill?.email} required />
             </div>
           </div>
         </fieldset>
@@ -98,13 +166,48 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
           <legend className="px-2 font-serif text-lg text-gray-900">
             Delivery address
           </legend>
+          <p className="mb-4 text-xs text-gray-500">We currently deliver within India only.</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Field label="Address" name="address" placeholder="House no, street, area" required />
+              <Field label="Address" name="address" placeholder="House no, street, area" defaultValue={prefill?.address} required />
             </div>
-            <Field label="City" name="city" placeholder="Bhubaneswar" required />
-            <Field label="State" name="state" placeholder="Odisha" required />
-            <Field label="Pincode" name="pincode" placeholder="751001" required />
+            <Field label="City" name="city" placeholder="Bhubaneswar" defaultValue={prefill?.city} required />
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-600">
+                State <span className="text-brand">*</span>
+              </span>
+              <select
+                name="state"
+                required
+                defaultValue={prefill?.state ?? "Odisha"}
+                className="w-full rounded-md border border-black/10 bg-white px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+              >
+                {INDIAN_STATES.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-gray-600">
+                Pincode <span className="text-brand">*</span>
+              </span>
+              <input
+                name="pincode"
+                inputMode="numeric"
+                placeholder="751001"
+                required
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
+              />
+              {pincodeComplete && hasServiceArea ? (
+                <span className={`mt-1 block text-xs font-medium ${serviceable ? "text-rating" : "text-red-600"}`}>
+                  {serviceable ? "✓ We deliver here." : "Sorry, we don't deliver to this pincode yet."}
+                </span>
+              ) : null}
+            </label>
             <Field label="Landmark (optional)" name="landmark" placeholder="Near temple" />
           </div>
         </fieldset>
@@ -135,6 +238,9 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
               </label>
             ))}
           </div>
+          <p className="mt-3 text-xs text-gray-500">
+            Pay in cash when your order arrives. We&apos;ll confirm the total on the phone before dispatch.
+          </p>
         </fieldset>
       </div>
 
@@ -178,11 +284,21 @@ export default function CheckoutClient({ items }: { items: CartLine[] }) {
           </div>
         </dl>
 
+        {error ? (
+          <p
+            role="alert"
+            className="mt-4 rounded-md bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200"
+          >
+            {error}
+          </p>
+        ) : null}
+
         <button
           type="submit"
-          className="mt-6 w-full bg-brand py-3 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light"
+          disabled={saving || (pincodeComplete && !serviceable)}
+          className="mt-6 w-full bg-brand py-3 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-60"
         >
-          PLACE ORDER
+          {saving ? "PLACING ORDER..." : "PLACE ORDER"}
         </button>
         <Link
           href="/cart"
@@ -200,12 +316,14 @@ function Field({
   name,
   type = "text",
   placeholder,
+  defaultValue,
   required,
 }: {
   label: string;
   name: string;
   type?: string;
   placeholder?: string;
+  defaultValue?: string;
   required?: boolean;
 }) {
   return (
@@ -217,6 +335,7 @@ function Field({
         name={name}
         type={type}
         placeholder={placeholder}
+        defaultValue={defaultValue}
         required={required}
         className="w-full rounded-md border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30"
       />

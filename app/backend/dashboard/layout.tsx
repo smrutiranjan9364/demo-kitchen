@@ -6,6 +6,7 @@ import {
   getDistricts,
   getOrders,
   getReviews,
+  getMessages,
   getFestivalFoods,
   getInvestments,
   getUserPermissions,
@@ -23,12 +24,13 @@ export default async function DashboardLayout({
   const session = await getSession();
   if (!session) redirect("/backend");
 
-  const [products, categories, districts, orders, reviews, festival, investments, rights] = await Promise.all([
+  const [products, categories, districts, orders, reviews, messages, festival, investments, rights] = await Promise.all([
     getProducts(),
     getCategories(),
     getDistricts(),
     getOrders(),
     getReviews(),
+    getMessages(),
     getFestivalFoods(),
     getInvestments(),
     session.role === "super"
@@ -42,7 +44,10 @@ export default async function DashboardLayout({
     products: products.length,
     festival: festival.length,
     orders: orders.length,
-    reviews: reviews.length,
+    // Badge shows what's awaiting moderation, not the all-time total.
+    reviews: reviews.filter((r) => !r.approved).length,
+    // Badge shows what still needs a reply, not the all-time total.
+    messages: messages.filter((m) => !m.handled).length,
     investments: investments.length,
   };
 

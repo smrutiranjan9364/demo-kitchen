@@ -1,34 +1,20 @@
 "use client";
 
-import { useState, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import type { Product } from "@/data/products";
+import { useCart } from "@/components/cart/CartContext";
+import { priceOrder, type DeliveryRates } from "@/lib/orders";
+import PincodeCheck from "@/components/delivery/PincodeCheck";
 
-type CartLine = Product & { qty: number };
-
-const DELIVERY_FEE = 40;
-const FREE_DELIVERY_OVER = 500;
-
-export default function CartClient({ initialItems }: { initialItems: CartLine[] }) {
-  const [items, setItems] = useState<CartLine[]>(initialItems);
-
-  const updateQty = (id: string, delta: number) =>
-    setItems((prev) =>
-      prev.map((it) =>
-        it.id === id ? { ...it, qty: Math.max(1, it.qty + delta) } : it,
-      ),
-    );
-
-  const removeItem = (id: string) =>
-    setItems((prev) => prev.filter((it) => it.id !== id));
-
-  const subtotal = useMemo(
-    () => items.reduce((sum, it) => sum + it.price * it.qty, 0),
-    [items],
-  );
-  const delivery = subtotal === 0 || subtotal >= FREE_DELIVERY_OVER ? 0 : DELIVERY_FEE;
-  const total = subtotal + delivery;
+export default function CartClient({
+  rates,
+  deliveryPincodes,
+}: {
+  rates: DeliveryRates;
+  deliveryPincodes: string;
+}) {
+  const { lines: items, setQty, remove: removeItem } = useCart();
+  const { subtotal, delivery, total } = priceOrder(items, rates);
 
   if (items.length === 0) {
     return (
@@ -84,7 +70,7 @@ export default function CartClient({ initialItems }: { initialItems: CartLine[] 
                 {/* Qty stepper */}
                 <div className="flex items-center rounded-md border border-black/10">
                   <button
-                    onClick={() => updateQty(item.id, -1)}
+                    onClick={() => setQty(item, Math.max(1, item.qty - 1))}
                     aria-label="Decrease quantity"
                     className="px-3 py-1.5 text-brand hover:bg-cream-soft"
                   >
@@ -92,7 +78,7 @@ export default function CartClient({ initialItems }: { initialItems: CartLine[] 
                   </button>
                   <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
                   <button
-                    onClick={() => updateQty(item.id, 1)}
+                    onClick={() => setQty(item, item.qty + 1)}
                     aria-label="Increase quantity"
                     className="px-3 py-1.5 text-brand hover:bg-cream-soft"
                   >
@@ -131,7 +117,7 @@ export default function CartClient({ initialItems }: { initialItems: CartLine[] 
           </div>
           {delivery > 0 ? (
             <p className="text-xs text-gray-400">
-              Add ₹{(FREE_DELIVERY_OVER - subtotal).toFixed(2)} more for free delivery.
+              Add ₹{(rates.freeDeliveryOver - subtotal).toFixed(2)} more for free delivery.
             </p>
           ) : null}
           <div className="flex justify-between border-t border-black/10 pt-3 text-base">
@@ -140,6 +126,8 @@ export default function CartClient({ initialItems }: { initialItems: CartLine[] 
           </div>
         </dl>
 
+        <PincodeCheck prefixes={deliveryPincodes} className="mt-4 border-t border-black/10 pt-4" />
+
         <Link
           href="/checkout"
           className="mt-6 block w-full bg-brand py-3 text-center text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light"
@@ -147,7 +135,7 @@ export default function CartClient({ initialItems }: { initialItems: CartLine[] 
           PROCEED TO CHECKOUT
         </Link>
         <p className="mt-3 text-center text-[11px] text-gray-400">
-          Secure checkout · Free delivery over ₹{FREE_DELIVERY_OVER}
+          Secure checkout · Free delivery over ₹{rates.freeDeliveryOver}
         </p>
       </aside>
     </div>

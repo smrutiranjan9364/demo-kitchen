@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { Product } from "@/data/products";
+import { isSoldOut, type Product } from "@/data/products";
 import { useCart } from "@/components/cart/CartContext";
 
 export default function ProductActions({ product }: { product: Product }) {
@@ -10,6 +10,17 @@ export default function ProductActions({ product }: { product: Product }) {
   const inCart = qtyOf(product.id);
   const [qty, setQty2] = useState(1);
   const [added, setAdded] = useState(false);
+  // How many more this shopper can still add (Infinity when stock isn't tracked).
+  const remaining = product.stock != null ? Math.max(0, product.stock - inCart) : Infinity;
+
+  if (isSoldOut(product)) {
+    return (
+      <div className="mt-6 rounded-md bg-gray-100 px-4 py-3 text-sm text-gray-600">
+        <span className="font-semibold text-gray-800">Sold out.</span> This batch has gone —
+        check back soon or browse similar items below.
+      </div>
+    );
+  }
 
   const addToCart = () => {
     setQty(product, inCart + qty);
@@ -33,7 +44,8 @@ export default function ProductActions({ product }: { product: Product }) {
           <span className="w-10 text-center text-sm font-bold tabular-nums">{qty}</span>
           <button
             type="button"
-            onClick={() => setQty2((q) => q + 1)}
+            onClick={() => setQty2((q) => Math.min(remaining, q + 1))}
+            disabled={qty >= remaining}
             aria-label="Increase quantity"
             className="flex h-full w-11 items-center justify-center text-lg text-brand hover:bg-cream-soft"
           >
@@ -45,13 +57,18 @@ export default function ProductActions({ product }: { product: Product }) {
         <button
           type="button"
           onClick={addToCart}
-          className={`h-11 flex-1 rounded-md text-xs font-semibold tracking-widest transition ${
+          disabled={remaining === 0}
+          className={`h-11 flex-1 rounded-md text-xs font-semibold tracking-widest transition disabled:cursor-not-allowed disabled:opacity-60 ${
             added ? "bg-rating text-white" : "bg-brand text-cream hover:bg-brand-light"
           }`}
         >
-          {added ? "✓ ADDED TO CART" : "ADD TO CART"}
+          {added ? "✓ ADDED TO CART" : remaining === 0 ? "ALL IN YOUR CART" : "ADD TO CART"}
         </button>
       </div>
+
+      {product.stock != null && product.stock <= 5 ? (
+        <p className="mt-3 text-sm font-medium text-brand">Only {product.stock} left</p>
+      ) : null}
 
       {inCart > 0 ? (
         <p className="mt-3 text-sm text-gray-500">

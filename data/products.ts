@@ -9,7 +9,17 @@ export type Product = {
   image?: string;
   category?: string;
   district?: string;
+  veg?: boolean; // undefined = vegetarian (matches the DB default)
+  stock?: number; // undefined = not tracked; 0 = sold out
+  weight?: string; // pack size label, e.g. "500 g"
+  description?: string; // per-product copy; falls back to productDescription()
+  ingredients?: string;
+  allergens?: string;
+  shelfLife?: string;
+  storage?: string;
 };
+
+export const isSoldOut = (p: Product) => p.stock != null && p.stock <= 0;
 
 const img = (id: string) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=80`;
@@ -210,33 +220,3 @@ export function relatedProducts(product: Product, limit = 4): Product[] {
 export function productDescription(p: Product): string {
   return `${p.name} from Odia Kitchen — prepared the traditional Odia way, in small batches, using time-honoured recipes and honest ingredients. Freshly made and carefully packed so it reaches you tasting just like home.`;
 }
-
-export type Review = {
-  name: string;
-  rating: number;
-  date: string;
-  comment: string;
-};
-
-// Sample reviews shown on every product detail page (demo content).
-export const SAMPLE_REVIEWS: Review[] = [
-  {
-    name: "Ananya M.",
-    rating: 5,
-    date: "2 weeks ago",
-    comment:
-      "Absolutely authentic! Tasted exactly like what my grandmother makes. Packaging was neat and delivery was quick.",
-  },
-  {
-    name: "Rakesh S.",
-    rating: 5,
-    date: "1 month ago",
-    comment: "Fresh and flavourful. Will definitely order again for the festival season.",
-  },
-  {
-    name: "Priya D.",
-    rating: 4,
-    date: "1 month ago",
-    comment: "Really good quality and taste. Would love a slightly bigger pack option.",
-  },
-];

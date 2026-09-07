@@ -251,6 +251,7 @@ test("catalog identity and sitemap share canonical products without resurrecting
     if (query.includes("FROM products WHERE id")) return products.filter((product) => product.id === values[0]).map(row);
     if (query.includes("WHERE category") && query.includes("id <>")) return products.filter((product) => product.category === values[0] && product.id !== values[1]).slice(0, Number(values[2])).map(row);
     if (query.includes("FROM products ORDER BY")) return products.map(row);
+    if (query.includes("FROM reviews")) return [];
     throw new Error(`Unexpected SQL in read-only test: ${query}`);
   };
   try {

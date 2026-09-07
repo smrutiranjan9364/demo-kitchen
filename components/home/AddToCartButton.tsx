@@ -1,11 +1,24 @@
 "use client";
 
-import type { Product } from "@/data/products";
+import { isSoldOut, type Product } from "@/data/products";
 import { useCart } from "@/components/cart/CartContext";
 
 export default function AddToCartButton({ product }: { product: Product }) {
   const { qtyOf, add, setQty } = useCart();
   const qty = qtyOf(product.id);
+  const atLimit = product.stock != null && qty >= product.stock;
+
+  if (isSoldOut(product)) {
+    return (
+      <button
+        type="button"
+        disabled
+        className="mt-3 flex h-9 w-full cursor-not-allowed items-center justify-center rounded-md bg-gray-200 text-[11px] font-semibold tracking-widest text-gray-500"
+      >
+        SOLD OUT
+      </button>
+    );
+  }
 
   if (qty === 0) {
     return (
@@ -37,8 +50,10 @@ export default function AddToCartButton({ product }: { product: Product }) {
       <button
         type="button"
         onClick={() => setQty(product, qty + 1)}
+        disabled={atLimit}
         aria-label="Increase quantity"
-        className="flex h-full w-9 items-center justify-center text-lg leading-none text-brand transition hover:bg-brand hover:text-cream"
+        title={atLimit ? `Only ${product.stock} available` : undefined}
+        className="flex h-full w-9 items-center justify-center text-lg leading-none text-brand transition hover:bg-brand hover:text-cream disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent"
       >
         +
       </button>

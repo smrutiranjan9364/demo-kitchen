@@ -5,8 +5,12 @@ import ProductCard from "@/components/home/ProductCard";
 import ProductActions from "@/components/product/ProductActions";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductReviews from "@/components/product/ProductReviews";
-import { productDescription, SAMPLE_REVIEWS } from "@/data/products";
-import { getProductPageData } from "@/lib/catalog";
+import VegMark from "@/components/product/VegMark";
+import { productDescription } from "@/data/products";
+import { getProductPageData, resolveDistrict } from "@/lib/catalog";
+import PincodeCheck from "@/components/delivery/PincodeCheck";
+import { getReviewsForProduct, getSettings, hasPurchased, hasReviewed } from "@/lib/store";
+import { getCurrentCustomer } from "@/lib/customer";
 import { createMetadata } from "@/lib/seo";
 import { productSeo } from "@/lib/catalog-seo";
 import { PageJsonLd } from "@/components/seo/JsonLd";
@@ -48,6 +52,24 @@ export default async function ProductDetailPage({
   if (data.canonicalId !== id) permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
   const { product, category, related } = data;
   const page = productSeo(product);
+  const customer = await getCurrentCustomer();
+  const [reviews, settings, purchased, reviewed, district] = await Promise.all([
+    getReviewsForProduct(product.id),
+    getSettings(),
+    customer ? hasPurchased(customer.id, product.id) : Promise.resolve(false),
+    customer ? hasReviewed(customer.id, product.id) : Promise.resolve(false),
+    product.district ? resolveDistrict(product.district) : Promise.resolve(undefined),
+  ]);
+  // Only the facts the kitchen has actually filled in — no empty rows.
+  const details = (
+    [
+      ["Ingredients", product.ingredients],
+      ["Allergens", product.allergens],
+      ["Shelf life", product.shelfLife],
+      ["Storage", product.storage],
+      ["From", district?.name],
+    ] as [string, string | undefined][]
+  ).filter((entry): entry is [string, string] => Boolean(entry[1]));
 
   return (
     <div className="bg-cream-soft">
@@ -95,12 +117,25 @@ export default async function ProductDetailPage({
                 {category.label}
               </Link>
             ) : null}
-            <h1 className="mt-2 font-serif text-3xl text-gray-900">{product.name}</h1>
+            <h1 className="mt-2 flex items-center gap-2.5 font-serif text-3xl text-gray-900">
+              <VegMark veg={product.veg !== false} className="h-5 w-5" />
+              {product.name}
+            </h1>
 
             <div className="mt-3 flex items-center gap-2 text-sm">
-              <Stars rating={product.rating} />
-              <span className="font-medium text-gray-700">{product.rating.toFixed(1)}</span>
-              <span className="text-gray-400">({product.reviews} reviews)</span>
+              {product.reviews > 0 ? (
+                <a href="#reviews" className="flex items-center gap-2 hover:text-brand">
+                  <Stars rating={product.rating} />
+                  <span className="font-medium text-gray-700">{product.rating.toFixed(1)}</span>
+                  <span className="text-gray-400">
+                    ({product.reviews} verified review{product.reviews === 1 ? "" : "s"})
+                  </span>
+                </a>
+              ) : (
+                <span className="rounded bg-cream px-2 py-0.5 text-xs font-semibold tracking-wide text-brand">
+                  NEW · no reviews yet
+                </span>
+              )}
             </div>
 
             <div className="mt-5 flex items-baseline gap-3">
@@ -112,10 +147,13 @@ export default async function ProductDetailPage({
                   ₹{product.oldPrice.toFixed(2)}
                 </span>
               ) : null}
+              {product.weight ? (
+                <span className="text-sm text-gray-500">/ {product.weight}</span>
+              ) : null}
             </div>
 
             <p className="mt-5 text-sm leading-relaxed text-gray-600">
-              {productDescription(product)}
+              {product.description ?? productDescription(product)}
             </p>
 
             <ProductActions product={product} />
@@ -123,19 +161,30 @@ export default async function ProductDetailPage({
             {/* Meta */}
             <ul className="mt-8 space-y-2 border-t border-black/5 pt-6 text-sm text-gray-500">
               <li>✓ Freshly made in small batches</li>
-              <li>✓ Free delivery on orders over ₹500</li>
+              <li>✓ Free delivery on orders over ₹{settings.freeDeliveryOver}</li>
               <li>✓ Hygienically packed with care</li>
             </ul>
+
+            {details.length > 0 ? (
+              <dl className="mt-6 grid gap-4 rounded-xl bg-white p-5 text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-2">
+                {details.map(([label, value]) => (
+                  <div key={label} className={label === "Ingredients" ? "sm:col-span-2" : ""}>
+                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
+                    <dd className="mt-0.5 leading-relaxed text-gray-700">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            ) : null}
+
+            <PincodeCheck prefixes={settings.deliveryPincodes} className="mt-6" />
           </div>
         </div>
 
         {/* Reviews */}
         <ProductReviews
           productId={product.id}
-          productName={product.name}
-          baseRating={product.rating}
-          baseCount={product.reviews}
-          sampleReviews={SAMPLE_REVIEWS}
+          initialReviews={reviews}
+          reviewer={customer ? { name: customer.name, purchased, reviewed } : null}
         />
 
         {/* Related */}

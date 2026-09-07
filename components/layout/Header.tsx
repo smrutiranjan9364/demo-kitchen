@@ -7,9 +7,10 @@ import MoreMenu from "./MoreMenu";
 import DistrictsMenu from "./DistrictsMenu";
 import MobileNav from "./MobileNav";
 import LoginButton from "@/components/auth/LoginButton";
+import { getCurrentCustomer } from "@/lib/customer";
 
 export default async function Header() {
-  const districts = await getDistrictNav();
+  const [districts, customer] = await Promise.all([getDistrictNav(), getCurrentCustomer()]);
   return (
     <header className="sticky top-0 z-50">
       {/* Top bar */}
@@ -72,7 +73,7 @@ export default async function Header() {
             </a>
 
             {/* Login: label hides on very small screens, icon stays */}
-            <LoginButton />
+            <LoginButton customer={customer ? { name: customer.name } : null} />
             <CartLink />
           </div>
         </div>

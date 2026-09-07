@@ -17,6 +17,21 @@ CREATE INDEX IF NOT EXISTS products_category_idx ON products (category);
 -- Migration: tag each product with a district (added after initial release).
 ALTER TABLE products ADD COLUMN IF NOT EXISTS district TEXT;
 CREATE INDEX IF NOT EXISTS products_district_idx ON products (district);
+-- Migration: FSSAI veg / non-veg mark. Almost the whole catalogue is
+-- vegetarian, so default true and let the admin flag the exceptions.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS veg BOOLEAN NOT NULL DEFAULT true;
+-- Migration: inventory. NULL stock = not tracked (never sells out); a number is
+-- decremented atomically when an order is placed. weight is a free label
+-- ("500 g", "6 pieces") shown next to the price.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS stock  INTEGER;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS weight TEXT;
+-- Migration: what a food customer actually asks. All optional; the page only
+-- renders the ones that are filled in.
+ALTER TABLE products ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ingredients TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS allergens   TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS shelf_life  TEXT;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS storage     TEXT;
 
 CREATE TABLE IF NOT EXISTS categories (
   slug        TEXT PRIMARY KEY,
@@ -70,6 +85,20 @@ CREATE TABLE IF NOT EXISTS orders (
   status     TEXT    NOT NULL DEFAULT 'Placed'
 );
 CREATE INDEX IF NOT EXISTS orders_created_at_idx ON orders (created_at DESC);
+-- Migration: link orders to a customer account. NULL = guest checkout.
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_id TEXT;
+CREATE INDEX IF NOT EXISTS orders_customer_idx ON orders (customer_id);
+
+-- Shopper accounts. Distinct from `users` (admin logins) on purpose.
+CREATE TABLE IF NOT EXISTS customers (
+  id            TEXT PRIMARY KEY,
+  email         TEXT NOT NULL UNIQUE,
+  phone         TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  salt          TEXT NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 CREATE TABLE IF NOT EXISTS reviews (
   id           TEXT PRIMARY KEY,
@@ -81,6 +110,27 @@ CREATE TABLE IF NOT EXISTS reviews (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS reviews_product_id_idx ON reviews (product_id);
+-- Migration: moderation + verified purchase. New reviews wait for approval.
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS approved    BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE reviews ADD COLUMN IF NOT EXISTS customer_id TEXT;
+-- products.rating / products.reviews are a cache of the approved reviews.
+-- Recomputed on every setup so they can never drift (this also replaced the
+-- original seeded demo numbers the first time it ran).
+UPDATE products p SET
+  rating  = COALESCE((SELECT AVG(r.rating) FROM reviews r WHERE r.product_id = p.id AND r.approved), 0),
+  reviews = (SELECT count(*) FROM reviews r WHERE r.product_id = p.id AND r.approved);
+
+-- Contact-form submissions. `handled` is the admin's "dealt with" tick.
+CREATE TABLE IF NOT EXISTS messages (
+  id         TEXT PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  name       TEXT NOT NULL,
+  email      TEXT NOT NULL,
+  subject    TEXT NOT NULL,
+  body       TEXT NOT NULL,
+  handled    BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS messages_created_idx ON messages (created_at DESC);
 
 CREATE TABLE IF NOT EXISTS users (
   username      TEXT PRIMARY KEY,
@@ -109,3 +159,7 @@ CREATE TABLE IF NOT EXISTS settings (
   free_delivery_over INTEGER NOT NULL,
   CONSTRAINT settings_singleton CHECK (id = 1)
 );
+-- Migration: FSSAI licence number, shown in the storefront footer.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS fssai TEXT;
+-- Migration: serviceable pincode prefixes ("751, 752"). NULL = deliver everywhere.
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS delivery_pincodes TEXT;
