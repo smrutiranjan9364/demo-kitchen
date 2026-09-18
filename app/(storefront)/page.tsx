@@ -3,6 +3,7 @@ import ProductSection from "@/components/home/ProductSection";
 import FestivalFood from "@/components/home/FestivalFood";
 import Testimonial from "@/components/home/Testimonial";
 import TasteOdisha from "@/components/home/TasteOdisha";
+import AppDownload from "@/components/home/AppDownload";
 import { getFeaturedProducts } from "@/lib/catalog";
 import { getFestivalFoods } from "@/lib/store";
 import { routeMetadata, seoPage } from "@/lib/seo";
@@ -25,6 +26,7 @@ export default async function Home() {
       <ProductSection title="Top Deals" products={topDeals} viewAllHref="/deals" />
       <FestivalFood foods={festivalFoods} />
       <Testimonial />
+      <AppDownload />
       <TasteOdisha />
     </div>
   );

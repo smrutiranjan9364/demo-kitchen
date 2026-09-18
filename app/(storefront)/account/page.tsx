@@ -28,12 +28,16 @@ export default async function AccountPage() {
       <div className="bg-brand text-cream">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
           <nav aria-label="Breadcrumb" className="mb-3 text-xs text-cream/70">
-            <Link href="/" className="hover:text-white">Home</Link>
+            <Link href="/" className="hover:text-white">
+              Home
+            </Link>
             <span className="mx-2">/</span>
             <span className="text-cream">Account</span>
           </nav>
           <h1 className="font-serif text-3xl sm:text-4xl">
-            {customer ? `Hello, ${customer.name.split(" ")[0]}` : "Your account"}
+            {customer
+              ? `Hello, ${customer.name.split(" ")[0]}`
+              : "Your account"}
           </h1>
         </div>
       </div>
@@ -44,11 +48,26 @@ export default async function AccountPage() {
             <aside className="h-fit rounded-xl bg-white p-6 shadow-sm ring-1 ring-black/5">
               <h2 className="font-serif text-lg text-gray-900">Your details</h2>
               <dl className="mt-4 space-y-2 text-sm">
-                <div><dt className="text-xs text-gray-500">Name</dt><dd className="text-gray-900">{customer.name}</dd></div>
-                <div><dt className="text-xs text-gray-500">Email</dt><dd className="text-gray-900">{customer.email}</dd></div>
-                <div><dt className="text-xs text-gray-500">Phone</dt><dd className="text-gray-900">{customer.phone}</dd></div>
+                <div>
+                  <dt className="text-xs text-gray-500">Name</dt>
+                  <dd className="text-gray-900">{customer.name}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Email</dt>
+                  <dd className="text-gray-900">{customer.email}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-gray-500">Phone</dt>
+                  <dd className="text-gray-900">{customer.phone}</dd>
+                </div>
               </dl>
               <div className="mt-6 border-t border-black/5 pt-4">
+                <Link
+                  href="/account/settings"
+                  className="mb-4 block text-sm font-semibold text-brand"
+                >
+                  Addresses, favorites & account settings →
+                </Link>
                 <LogoutButton />
               </div>
             </aside>
@@ -74,14 +93,19 @@ export default async function AccountPage() {
                         className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-5 shadow-sm ring-1 ring-black/5 transition hover:shadow-md"
                       >
                         <div>
-                          <p className="font-mono text-sm font-semibold text-gray-900">{o.id}</p>
+                          <p className="font-mono text-sm font-semibold text-gray-900">
+                            {o.id}
+                          </p>
                           <p className="mt-0.5 text-xs text-gray-500">
-                            {fmtDate(o.createdAt)} · {o.items.reduce((s, it) => s + it.qty, 0)} items
+                            {fmtDate(o.createdAt)} ·{" "}
+                            {o.items.reduce((s, it) => s + it.qty, 0)} items
                           </p>
                         </div>
                         <div className="flex items-center gap-3">
                           <StatusPill status={o.status} />
-                          <span className="font-bold text-brand">₹{o.total.toFixed(0)}</span>
+                          <span className="font-bold text-brand">
+                            ₹{o.total.toFixed(0)}
+                          </span>
                         </div>
                       </Link>
                     </li>
@@ -93,9 +117,12 @@ export default async function AccountPage() {
         ) : (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div className="rounded-xl bg-white p-8 shadow-sm ring-1 ring-black/5">
-              <h2 className="font-serif text-xl text-gray-900">Log in or create an account</h2>
+              <h2 className="font-serif text-xl text-gray-900">
+                Log in or create an account
+              </h2>
               <p className="mt-2 text-sm text-gray-500">
-                See every order in one place, reorder favourites, and skip the address form at checkout.
+                See every order in one place, reorder favourites, and skip the
+                address form at checkout.
               </p>
               <LoginButton
                 label="LOG IN / CREATE ACCOUNT"
@@ -103,9 +130,12 @@ export default async function AccountPage() {
               />
             </div>
             <div className="rounded-xl bg-white p-8 shadow-sm ring-1 ring-black/5">
-              <h2 className="font-serif text-xl text-gray-900">Track an order without an account</h2>
+              <h2 className="font-serif text-xl text-gray-900">
+                Track an order without an account
+              </h2>
               <p className="mt-2 text-sm text-gray-500">
-                Enter the order number from your confirmation and the phone number you gave us.
+                Enter the order number from your confirmation and the phone
+                number you gave us.
               </p>
               <div className="mt-6">
                 <OrderLookupForm />

@@ -1,7 +1,9 @@
 import { ORDER_STATUSES, STATUS_STYLE } from "@/lib/orders";
 
 // The happy path, in order. Cancelled is a terminal branch shown separately.
-const STEPS = ORDER_STATUSES.filter((s) => s !== "Cancelled");
+const STEPS = ORDER_STATUSES.filter(
+  (s) => s !== "Cancelled" && s !== "Rejected",
+);
 
 export function StatusPill({ status }: { status: string }) {
   return (
@@ -16,23 +18,29 @@ export function StatusPill({ status }: { status: string }) {
 }
 
 export default function OrderStatusTimeline({ status }: { status: string }) {
-  if (status === "Cancelled") {
+  if (status === "Cancelled" || status === "Rejected") {
     return (
       <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">
-        This order was cancelled. If that&apos;s unexpected, please get in touch and we&apos;ll sort it out.
+        This order was cancelled. If that&apos;s unexpected, please get in touch
+        and we&apos;ll sort it out.
       </div>
     );
   }
   const current = STEPS.indexOf(status as (typeof STEPS)[number]);
   return (
-    <ol className="flex items-start gap-0">
+    <ol className="grid grid-cols-4 items-start gap-y-5 md:grid-cols-8">
       {STEPS.map((step, i) => {
         const done = i < current;
         const active = i === current;
         return (
-          <li key={step} className="flex flex-1 flex-col items-center text-center">
+          <li
+            key={step}
+            className="flex min-w-0 flex-col items-center text-center"
+          >
             <div className="flex w-full items-center">
-              <span className={`h-0.5 flex-1 ${i === 0 ? "bg-transparent" : done || active ? "bg-brand" : "bg-black/10"}`} />
+              <span
+                className={`h-0.5 flex-1 ${i === 0 ? "bg-transparent" : done || active ? "bg-brand" : "bg-black/10"}`}
+              />
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                   done
@@ -45,9 +53,13 @@ export default function OrderStatusTimeline({ status }: { status: string }) {
               >
                 {done ? "✓" : i + 1}
               </span>
-              <span className={`h-0.5 flex-1 ${i === STEPS.length - 1 ? "bg-transparent" : done ? "bg-brand" : "bg-black/10"}`} />
+              <span
+                className={`h-0.5 flex-1 ${i === STEPS.length - 1 ? "bg-transparent" : done ? "bg-brand" : "bg-black/10"}`}
+              />
             </div>
-            <span className={`mt-2 text-[11px] font-medium sm:text-xs ${active ? "text-brand" : done ? "text-gray-700" : "text-gray-400"}`}>
+            <span
+              className={`mt-2 text-[11px] font-medium sm:text-xs ${active ? "text-brand" : done ? "text-gray-700" : "text-gray-400"}`}
+            >
               {step}
             </span>
           </li>

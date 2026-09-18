@@ -36,14 +36,18 @@ function secret(): string {
   const fallback = devFallback("dev-insecure-secret-change-me");
   // No safe default exists: refuse to sign or verify sessions rather than sign
   // them with a value an attacker already knows.
-  if (!fallback) throw new Error("ADMIN_SESSION_SECRET must be set in production.");
+  if (!fallback)
+    throw new Error("ADMIN_SESSION_SECRET must be set in production.");
   return fallback;
 }
 
 // The bootstrap super-admin credentials from the environment. When they are not
 // configured in production the bootstrap account is simply disabled — store-managed
 // admin users still sign in normally.
-export function checkSuperCredentials(username: string, password: string): boolean {
+export function checkSuperCredentials(
+  username: string,
+  password: string,
+): boolean {
   const u = process.env.ADMIN_USERNAME || devFallback("admin");
   const p = process.env.ADMIN_PASSWORD || devFallback("admin123");
   if (!u || !p) return false;
@@ -58,7 +62,11 @@ export function hashPassword(password: string): { hash: string; salt: string } {
   return { hash, salt };
 }
 
-export function verifyPassword(password: string, hash: string, salt: string): boolean {
+export function verifyPassword(
+  password: string,
+  hash: string,
+  salt: string,
+): boolean {
   const h = crypto.scryptSync(password, salt, 64).toString("hex");
   const a = Buffer.from(h);
   const b = Buffer.from(hash);
@@ -68,7 +76,10 @@ export function verifyPassword(password: string, hash: string, salt: string): bo
 /* ---- Admin session ---- */
 
 export function createToken(username: string, role: Role): string {
-  return signToken({ k: "admin", u: username, r: role, t: Date.now() }, secret());
+  return signToken(
+    { k: "admin", u: username, r: role, t: Date.now() },
+    secret(),
+  );
 }
 
 export function verifyToken(token?: string | null) {
@@ -91,7 +102,10 @@ export async function isSuperAdmin(): Promise<boolean> {
   return (await getSession())?.role === "super";
 }
 
-export async function setAdminSession(username: string, role: Role): Promise<void> {
+export async function setAdminSession(
+  username: string,
+  role: Role,
+): Promise<void> {
   const store = await cookies();
   store.set(ADMIN_COOKIE, createToken(username, role), {
     httpOnly: true,
@@ -112,18 +126,46 @@ export async function clearAdminSession(): Promise<void> {
 // The signed-in customer's id, or null. Cheap: no database read.
 export async function getCustomerId(): Promise<string | null> {
   const store = await cookies();
-  return verifyCustomerToken(store.get(CUSTOMER_COOKIE)?.value, secret())?.u ?? null;
+  const payload = verifyCustomerToken(
+    store.get(CUSTOMER_COOKIE)?.value,
+    secret(),
+  );
+  if (!payload) return null;
+  const { sql } = await import("@/lib/db");
+  const [customer] =
+    await sql`SELECT session_version, blocked FROM customers WHERE id=${payload.u}`;
+  return customer &&
+    !customer.blocked &&
+    customer.session_version === (payload.v ?? 0)
+    ? payload.u
+    : null;
 }
 
 export async function setCustomerSession(customerId: string): Promise<void> {
   const store = await cookies();
-  store.set(CUSTOMER_COOKIE, signToken({ k: "customer", u: customerId, t: Date.now() }, secret()), {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: CUSTOMER_MAX_AGE,
-    secure: process.env.NODE_ENV === "production",
-  });
+  const { sql } = await import("@/lib/db");
+  const [customer] =
+    await sql`SELECT session_version,blocked FROM customers WHERE id=${customerId}`;
+  if (!customer || customer.blocked) throw new Error("Account unavailable.");
+  store.set(
+    CUSTOMER_COOKIE,
+    signToken(
+      {
+        k: "customer",
+        u: customerId,
+        t: Date.now(),
+        v: customer?.session_version ?? 0,
+      },
+      secret(),
+    ),
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: CUSTOMER_MAX_AGE,
+      secure: process.env.NODE_ENV === "production",
+    },
+  );
 }
 
 export async function clearCustomerSession(): Promise<void> {
@@ -145,7 +187,10 @@ export function orderTrackingToken(orderId: string): string {
     .slice(0, 24);
 }
 
-export function verifyOrderTrackingToken(orderId: string, token: string | undefined): boolean {
+export function verifyOrderTrackingToken(
+  orderId: string,
+  token: string | undefined,
+): boolean {
   if (!token) return false;
   const a = Buffer.from(token);
   const b = Buffer.from(orderTrackingToken(orderId));

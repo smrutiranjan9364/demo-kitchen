@@ -1,5 +1,7 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import PreLaunchModal from "@/components/home/PreLaunchModal";
+import AppDownloadModal from "@/components/home/AppDownloadModal";
 import { CartProvider } from "@/components/cart/CartContext";
 
 // Storefront chrome (header, footer, cart). The admin area under /backend is
@@ -12,6 +14,8 @@ export default function StorefrontLayout({
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      {process.env.NEXT_PUBLIC_PRELAUNCH === "true" ? <PreLaunchModal /> : null}
+      <AppDownloadModal />
     </CartProvider>
   );
 }

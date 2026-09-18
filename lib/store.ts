@@ -1,3 +1,4 @@
+import type { MenuOption, Selection } from "@/lib/menu";
 // Server-only data store, backed by Postgres (Neon). Products, orders, reviews,
 // categories, admin users, festival foods and settings are persisted in the
 // database. The static catalog under data/ is only used to *seed* the DB (see
@@ -43,6 +44,10 @@ export type AdminProduct = Product;
 // Maps a DB row (snake_case, nulls) to the app's Product shape (camelCase,
 // optional fields undefined rather than null).
 type ProductRow = {
+  variants: MenuOption[];
+  addons: MenuOption[];
+  restaurant_id: string;
+  available: boolean;
   id: string;
   name: string;
   price: number;
@@ -65,6 +70,10 @@ type ProductRow = {
 
 function toProduct(r: ProductRow): AdminProduct {
   return {
+    restaurantId: r.restaurant_id,
+    variants: r.variants ?? [],
+    addons: r.addons ?? [],
+    available: r.available,
     id: r.id,
     name: r.name,
     price: r.price,
@@ -93,40 +102,52 @@ export const getProducts = cache(async (): Promise<AdminProduct[]> => {
   return rows.map(toProduct);
 });
 
-export const getProduct = cache(async (id: string): Promise<AdminProduct | undefined> => {
-  const rows = await sql<ProductRow[]>`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
-  if (rows[0]) return toProduct(rows[0]);
-  // Fall back to curated static items (best-sellers / deals) whose detail
-  // pages are linked by their own ids and aren't part of the editable set.
-  // A deleted DB catalog item must stay deleted. Only the explicitly curated
-  // homepage/deal products exist independently of the editable DB catalog.
-  const curated = [...BEST_SELLERS, ...TOP_DEALS].find((product) => product.id === id);
-  if (!curated) return undefined;
-  // Its seeded rating is demo data; overlay the real one from approved reviews.
-  return withLiveRating(curated, await getRatingSummary([curated.id]));
-});
+export const getProduct = cache(
+  async (id: string): Promise<AdminProduct | undefined> => {
+    const rows = await sql<
+      ProductRow[]
+    >`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
+    if (rows[0]) return toProduct(rows[0]);
+    // Fall back to curated static items (best-sellers / deals) whose detail
+    // pages are linked by their own ids and aren't part of the editable set.
+    // A deleted DB catalog item must stay deleted. Only the explicitly curated
+    // homepage/deal products exist independently of the editable DB catalog.
+    const curated = [...BEST_SELLERS, ...TOP_DEALS].find(
+      (product) => product.id === id,
+    );
+    if (!curated) return undefined;
+    // Its seeded rating is demo data; overlay the real one from approved reviews.
+    return withLiveRating(curated, await getRatingSummary([curated.id]));
+  },
+);
 
-export const getProductsByCategory = cache(async (slug: string): Promise<AdminProduct[]> => {
-  const rows = await sql<ProductRow[]>`
+export const getProductsByCategory = cache(
+  async (slug: string): Promise<AdminProduct[]> => {
+    const rows = await sql<ProductRow[]>`
     SELECT * FROM products WHERE category = ${slug} ORDER BY name`;
-  return rows.map(toProduct);
-});
+    return rows.map(toProduct);
+  },
+);
 
-export const getProductsByDistrict = cache(async (slug: string): Promise<AdminProduct[]> => {
-  const rows = await sql<ProductRow[]>`
+export const getProductsByDistrict = cache(
+  async (slug: string): Promise<AdminProduct[]> => {
+    const rows = await sql<ProductRow[]>`
     SELECT * FROM products WHERE district = ${slug} ORDER BY name`;
-  return rows.map(toProduct);
-});
+    return rows.map(toProduct);
+  },
+);
 
-export const getRelated = cache(async (product: AdminProduct, limit = 4): Promise<AdminProduct[]> => {
-  if (!product.category) return [];
-  const rows = await sql<ProductRow[]>`
+export const getRelated = cache(
+  async (product: AdminProduct, limit = 4): Promise<AdminProduct[]> => {
+    if (!product.category) return [];
+    const rows = await sql<ProductRow[]>`
     SELECT * FROM products
     WHERE category = ${product.category} AND id <> ${product.id}
     ORDER BY name
     LIMIT ${limit}`;
-  return rows.map(toProduct);
-});
+    return rows.map(toProduct);
+  },
+);
 
 export type ProductInput = {
   name: string;
@@ -146,7 +167,9 @@ export type ProductInput = {
   storage?: string | null;
 };
 
-export async function createProduct(input: ProductInput): Promise<AdminProduct> {
+export async function createProduct(
+  input: ProductInput,
+): Promise<AdminProduct> {
   const id = `${slugify(input.name)}-${Date.now().toString(36)}`;
   const rows = await sql<ProductRow[]>`
     INSERT INTO products (id, name, price, rating, reviews, category, district, image, old_price, discount, veg, stock, weight,
@@ -166,7 +189,9 @@ export async function updateProduct(
   id: string,
   patch: Partial<ProductInput>,
 ): Promise<AdminProduct | undefined> {
-  const existing = await sql<ProductRow[]>`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
+  const existing = await sql<
+    ProductRow[]
+  >`SELECT * FROM products WHERE id = ${id} LIMIT 1`;
   if (!existing[0]) return undefined;
   const cur = existing[0];
   const rows = await sql<ProductRow[]>`
@@ -198,7 +223,12 @@ export async function deleteProduct(id: string): Promise<boolean> {
 
 /* ------------------------------ Orders ------------------------------ */
 
-export type OrderItem = { id: string; name: string; price: number; qty: number };
+export type OrderItem = Selection & {
+  id: string;
+  name: string;
+  price: number;
+  qty: number;
+};
 
 export type Order = {
   id: string;
@@ -260,22 +290,30 @@ function toOrder(r: OrderRow): Order {
 }
 
 export async function getOrders(): Promise<Order[]> {
-  const rows = await sql<OrderRow[]>`SELECT * FROM orders ORDER BY created_at DESC`;
+  const rows = await sql<
+    OrderRow[]
+  >`SELECT * FROM orders ORDER BY created_at DESC`;
   return rows.map(toOrder);
 }
 
 export async function getOrder(id: string): Promise<Order | undefined> {
-  const rows = await sql<OrderRow[]>`SELECT * FROM orders WHERE id = ${id} LIMIT 1`;
+  const rows = await sql<
+    OrderRow[]
+  >`SELECT * FROM orders WHERE id = ${id} LIMIT 1`;
   return rows[0] ? toOrder(rows[0]) : undefined;
 }
 
-export async function getOrdersForCustomer(customerId: string): Promise<Order[]> {
+export async function getOrdersForCustomer(
+  customerId: string,
+): Promise<Order[]> {
   const rows = await sql<OrderRow[]>`
     SELECT * FROM orders WHERE customer_id = ${customerId} ORDER BY created_at DESC`;
   return rows.map(toOrder);
 }
 
-type OrderInput = Omit<Order, "id" | "createdAt" | "status"> & { status?: string };
+type OrderInput = Omit<Order, "id" | "createdAt" | "status"> & {
+  status?: string;
+};
 
 export async function createOrder(
   data: OrderInput,
@@ -380,17 +418,21 @@ function toReview(r: ReviewRow): StoredReview {
 }
 
 export async function getReviews(): Promise<StoredReview[]> {
-  const rows = await sql<ReviewRow[]>`SELECT * FROM reviews ORDER BY created_at DESC`;
+  const rows = await sql<
+    ReviewRow[]
+  >`SELECT * FROM reviews ORDER BY created_at DESC`;
   return rows.map(toReview);
 }
 
 // Approved only, newest first. Shown publicly on the product page.
-export const getReviewsForProduct = cache(async (productId: string): Promise<StoredReview[]> => {
-  const rows = await sql<ReviewRow[]>`
+export const getReviewsForProduct = cache(
+  async (productId: string): Promise<StoredReview[]> => {
+    const rows = await sql<ReviewRow[]>`
     SELECT * FROM reviews WHERE product_id = ${productId} AND approved
     ORDER BY created_at DESC`;
-  return rows.map(toReview);
-});
+    return rows.map(toReview);
+  },
+);
 
 export async function createReview(
   data: Omit<StoredReview, "id" | "createdAt" | "approved">,
@@ -435,7 +477,10 @@ export async function deleteReview(id: string): Promise<boolean> {
 
 // Has this customer got a non-cancelled order containing the product?
 // `items` is a JSONB array of {id, ...}; containment does the lookup.
-export async function hasPurchased(customerId: string, productId: string): Promise<boolean> {
+export async function hasPurchased(
+  customerId: string,
+  productId: string,
+): Promise<boolean> {
   const rows = await sql`
     SELECT 1 FROM orders
     WHERE customer_id = ${customerId} AND status <> 'Cancelled'
@@ -444,7 +489,10 @@ export async function hasPurchased(customerId: string, productId: string): Promi
   return rows.length > 0;
 }
 
-export async function hasReviewed(customerId: string, productId: string): Promise<boolean> {
+export async function hasReviewed(
+  customerId: string,
+  productId: string,
+): Promise<boolean> {
   const rows = await sql`
     SELECT 1 FROM reviews WHERE customer_id = ${customerId} AND product_id = ${productId} LIMIT 1`;
   return rows.length > 0;
@@ -460,7 +508,9 @@ export async function getRatingSummary(ids: string[]): Promise<RatingSummary> {
     SELECT product_id, AVG(rating)::real AS rating, count(*)::int AS n
     FROM reviews WHERE approved AND product_id = ANY(${ids})
     GROUP BY product_id`;
-  return new Map(rows.map((r) => [r.product_id, { rating: r.rating, reviews: r.n }]));
+  return new Map(
+    rows.map((r) => [r.product_id, { rating: r.rating, reviews: r.n }]),
+  );
 }
 
 export function withLiveRating(product: Product, live: RatingSummary): Product {
@@ -500,17 +550,25 @@ function toCustomer(r: CustomerRow): Customer {
   };
 }
 
-export const getCustomer = cache(async (id: string): Promise<Customer | undefined> => {
-  const rows = await sql<CustomerRow[]>`SELECT * FROM customers WHERE id = ${id} LIMIT 1`;
-  return rows[0] ? toCustomer(rows[0]) : undefined;
-});
+export const getCustomer = cache(
+  async (id: string): Promise<Customer | undefined> => {
+    const rows = await sql<
+      CustomerRow[]
+    >`SELECT * FROM customers WHERE id = ${id} LIMIT 1`;
+    return rows[0] ? toCustomer(rows[0]) : undefined;
+  },
+);
 
 export async function findCustomerForLogin(
   email: string,
 ): Promise<(Customer & { passwordHash: string; salt: string }) | undefined> {
-  const rows = await sql<CustomerRow[]>`SELECT * FROM customers WHERE email = ${email} LIMIT 1`;
+  const rows = await sql<
+    CustomerRow[]
+  >`SELECT * FROM customers WHERE email = ${email} LIMIT 1`;
   const r = rows[0];
-  return r ? { ...toCustomer(r), passwordHash: r.password_hash, salt: r.salt } : undefined;
+  return r
+    ? { ...toCustomer(r), passwordHash: r.password_hash, salt: r.salt }
+    : undefined;
 }
 
 // Returns null when the email is already registered.
@@ -521,7 +579,8 @@ export async function createCustomer(data: {
   passwordHash: string;
   salt: string;
 }): Promise<Customer | null> {
-  const existing = await sql`SELECT 1 FROM customers WHERE email = ${data.email} LIMIT 1`;
+  const existing =
+    await sql`SELECT 1 FROM customers WHERE email = ${data.email} LIMIT 1`;
   if (existing.length > 0) return null;
   const id = `cus_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const rows = await sql<CustomerRow[]>`
@@ -567,7 +626,9 @@ function toMessage(r: MessageRow): Message {
 }
 
 export async function getMessages(): Promise<Message[]> {
-  const rows = await sql<MessageRow[]>`SELECT * FROM messages ORDER BY created_at DESC`;
+  const rows = await sql<
+    MessageRow[]
+  >`SELECT * FROM messages ORDER BY created_at DESC`;
   return rows.map(toMessage);
 }
 
@@ -589,6 +650,28 @@ export async function updateMessageHandled(
   const rows = await sql<MessageRow[]>`
     UPDATE messages SET handled = ${handled} WHERE id = ${id} RETURNING *`;
   return rows[0] ? toMessage(rows[0]) : undefined;
+}
+
+/* ------------------------- Pre-launch interest ------------------------- */
+
+// The launch teaser modal reads the running count; a signup appends one row
+// (email is UNIQUE, so a repeat is silently ignored and the count is unchanged).
+export async function getInterestCount(): Promise<number> {
+  const rows = await sql<{ count: number }[]>`
+    SELECT count(*)::int AS count FROM interest_signups`;
+  return rows[0]?.count ?? 0;
+}
+
+export async function addInterestSignup(data: {
+  email: string;
+  name?: string | null;
+}): Promise<number> {
+  const id = `int_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  await sql`
+    INSERT INTO interest_signups (id, email, name)
+    VALUES (${id}, ${data.email}, ${data.name ?? null})
+    ON CONFLICT (email) DO NOTHING`;
+  return getInterestCount();
 }
 
 /* ---------------------------- Categories ---------------------------- */
@@ -633,9 +716,11 @@ export const getCategories = cache(async (): Promise<Category[]> => {
   }));
 });
 
-export const getCategory = cache(async (slug: string): Promise<Category | undefined> => {
-  return (await getCategories()).find((c) => c.href === `/category/${slug}`);
-});
+export const getCategory = cache(
+  async (slug: string): Promise<Category | undefined> => {
+    return (await getCategories()).find((c) => c.href === `/category/${slug}`);
+  },
+);
 
 export type CategoryInput = {
   label: string;
@@ -646,10 +731,16 @@ export type CategoryInput = {
 };
 
 // Returns the created category, or null if the slug already exists.
-export async function createCategory(input: CategoryInput): Promise<RawCategory | null> {
-  const slug = (input.slug?.trim() || slugify(input.label)).replace(/[^a-z0-9-]/g, "");
+export async function createCategory(
+  input: CategoryInput,
+): Promise<RawCategory | null> {
+  const slug = (input.slug?.trim() || slugify(input.label)).replace(
+    /[^a-z0-9-]/g,
+    "",
+  );
   if (!slug) return null;
-  const existing = await sql`SELECT 1 FROM categories WHERE slug = ${slug} LIMIT 1`;
+  const existing =
+    await sql`SELECT 1 FROM categories WHERE slug = ${slug} LIMIT 1`;
   if (existing.length > 0) return null;
   const rows = await sql<CategoryRow[]>`
     INSERT INTO categories (slug, label, image, emoji, description)
@@ -672,7 +763,9 @@ export async function updateCategory(
   slug: string,
   patch: Partial<CategoryInput>,
 ): Promise<RawCategory | undefined> {
-  const existing = await sql<CategoryRow[]>`SELECT * FROM categories WHERE slug = ${slug} LIMIT 1`;
+  const existing = await sql<
+    CategoryRow[]
+  >`SELECT * FROM categories WHERE slug = ${slug} LIMIT 1`;
   if (!existing[0]) return undefined;
   const cur = existing[0];
   const rows = await sql<CategoryRow[]>`
@@ -694,7 +787,8 @@ export async function updateCategory(
 }
 
 export async function deleteCategory(slug: string): Promise<boolean> {
-  const rows = await sql`DELETE FROM categories WHERE slug = ${slug} RETURNING slug`;
+  const rows =
+    await sql`DELETE FROM categories WHERE slug = ${slug} RETURNING slug`;
   return rows.length > 0;
 }
 
@@ -740,10 +834,14 @@ export const getDistricts = cache(async (): Promise<AdminDistrict[]> => {
   return rows.map(toDistrict);
 });
 
-export const getDistrict = cache(async (slug: string): Promise<AdminDistrict | undefined> => {
-  const rows = await sql<DistrictRow[]>`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
-  return rows[0] ? toDistrict(rows[0]) : undefined;
-});
+export const getDistrict = cache(
+  async (slug: string): Promise<AdminDistrict | undefined> => {
+    const rows = await sql<
+      DistrictRow[]
+    >`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
+    return rows[0] ? toDistrict(rows[0]) : undefined;
+  },
+);
 
 export type DistrictInput = {
   name: string;
@@ -756,10 +854,16 @@ export type DistrictInput = {
 };
 
 // Returns the created district, or null if the slug already exists / is empty.
-export async function createDistrict(input: DistrictInput): Promise<AdminDistrict | null> {
-  const slug = (input.slug?.trim() || slugify(input.name)).replace(/[^a-z0-9-]/g, "");
+export async function createDistrict(
+  input: DistrictInput,
+): Promise<AdminDistrict | null> {
+  const slug = (input.slug?.trim() || slugify(input.name)).replace(
+    /[^a-z0-9-]/g,
+    "",
+  );
   if (!slug) return null;
-  const existing = await sql`SELECT 1 FROM districts WHERE slug = ${slug} LIMIT 1`;
+  const existing =
+    await sql`SELECT 1 FROM districts WHERE slug = ${slug} LIMIT 1`;
   if (existing.length > 0) return null;
   const rows = await sql<DistrictRow[]>`
     INSERT INTO districts (slug, name, region, headquarter, description, image, sort_order)
@@ -774,7 +878,9 @@ export async function updateDistrict(
   slug: string,
   patch: Partial<DistrictInput>,
 ): Promise<AdminDistrict | undefined> {
-  const existing = await sql<DistrictRow[]>`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
+  const existing = await sql<
+    DistrictRow[]
+  >`SELECT * FROM districts WHERE slug = ${slug} LIMIT 1`;
   if (!existing[0]) return undefined;
   const cur = existing[0];
   const rows = await sql<DistrictRow[]>`
@@ -791,7 +897,8 @@ export async function updateDistrict(
 }
 
 export async function deleteDistrict(slug: string): Promise<boolean> {
-  const rows = await sql`DELETE FROM districts WHERE slug = ${slug} RETURNING slug`;
+  const rows =
+    await sql`DELETE FROM districts WHERE slug = ${slug} RETURNING slug`;
   return rows.length > 0;
 }
 
@@ -868,7 +975,9 @@ export type InvestmentInput = {
   notes?: string;
 };
 
-export async function createInvestment(input: InvestmentInput): Promise<Investment> {
+export async function createInvestment(
+  input: InvestmentInput,
+): Promise<Investment> {
   const id = `inv_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
   const rows = await sql<InvestmentRow[]>`
     INSERT INTO investments (id, item, category, amount, spent_on, paid_to, payment_method, notes)
@@ -884,7 +993,9 @@ export async function updateInvestment(
   id: string,
   patch: Partial<InvestmentInput>,
 ): Promise<Investment | undefined> {
-  const existing = await sql<InvestmentRow[]>`SELECT * FROM investments WHERE id = ${id} LIMIT 1`;
+  const existing = await sql<
+    InvestmentRow[]
+  >`SELECT * FROM investments WHERE id = ${id} LIMIT 1`;
   if (!existing[0]) return undefined;
   const cur = existing[0];
   const rows = await sql<InvestmentRow[]>`
@@ -946,8 +1057,12 @@ export async function getUsers(): Promise<AdminUser[]> {
   return rows.map(toUser);
 }
 
-export async function findUser(username: string): Promise<AdminUser | undefined> {
-  const rows = await sql<UserRow[]>`SELECT * FROM users WHERE username = ${username} LIMIT 1`;
+export async function findUser(
+  username: string,
+): Promise<AdminUser | undefined> {
+  const rows = await sql<
+    UserRow[]
+  >`SELECT * FROM users WHERE username = ${username} LIMIT 1`;
   return rows[0] ? toUser(rows[0]) : undefined;
 }
 
@@ -957,11 +1072,16 @@ export async function getUserPermissions(username: string): Promise<Right[]> {
 }
 
 export async function createUser(
-  data: Omit<AdminUser, "role" | "createdAt" | "permissions"> & { permissions?: Right[] },
+  data: Omit<AdminUser, "role" | "createdAt" | "permissions"> & {
+    permissions?: Right[];
+  },
 ): Promise<AdminUser | null> {
-  const existing = await sql`SELECT 1 FROM users WHERE username = ${data.username} LIMIT 1`;
+  const existing =
+    await sql`SELECT 1 FROM users WHERE username = ${data.username} LIMIT 1`;
   if (existing.length > 0) return null;
-  const permissions = (data.permissions ?? ALL_RIGHTS).filter((p) => ALL_RIGHTS.includes(p));
+  const permissions = (data.permissions ?? ALL_RIGHTS).filter((p) =>
+    ALL_RIGHTS.includes(p),
+  );
   const rows = await sql<UserRow[]>`
     INSERT INTO users (username, password_hash, salt, role, permissions)
     VALUES (${data.username}, ${data.passwordHash}, ${data.salt}, ${"admin"},
@@ -983,7 +1103,8 @@ export async function updateUserPermissions(
 }
 
 export async function deleteUser(username: string): Promise<boolean> {
-  const rows = await sql`DELETE FROM users WHERE username = ${username} RETURNING username`;
+  const rows =
+    await sql`DELETE FROM users WHERE username = ${username} RETURNING username`;
   return rows.length > 0;
 }
 
@@ -1017,14 +1138,20 @@ function toFestival(r: FestivalRow): FestivalFood {
 }
 
 export const getFestivalFoods = cache(async (): Promise<FestivalFood[]> => {
-  const rows = await sql<FestivalRow[]>`SELECT * FROM festival_foods ORDER BY name`;
+  const rows = await sql<
+    FestivalRow[]
+  >`SELECT * FROM festival_foods ORDER BY name`;
   return rows.map(toFestival);
 });
 
-export const getFestivalFood = cache(async (id: string): Promise<FestivalFood | undefined> => {
-  const rows = await sql<FestivalRow[]>`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
-  return rows[0] ? toFestival(rows[0]) : undefined;
-});
+export const getFestivalFood = cache(
+  async (id: string): Promise<FestivalFood | undefined> => {
+    const rows = await sql<
+      FestivalRow[]
+    >`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
+    return rows[0] ? toFestival(rows[0]) : undefined;
+  },
+);
 
 export type FestivalInput = {
   name: string;
@@ -1033,7 +1160,9 @@ export type FestivalInput = {
   note?: string;
 };
 
-export async function createFestivalFood(input: FestivalInput): Promise<FestivalFood> {
+export async function createFestivalFood(
+  input: FestivalInput,
+): Promise<FestivalFood> {
   const id = `${slugify(input.name)}-${Date.now().toString(36)}`;
   const rows = await sql<FestivalRow[]>`
     INSERT INTO festival_foods (id, name, festival, image, note)
@@ -1047,7 +1176,9 @@ export async function updateFestivalFood(
   id: string,
   patch: Partial<FestivalInput>,
 ): Promise<FestivalFood | undefined> {
-  const existing = await sql<FestivalRow[]>`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
+  const existing = await sql<
+    FestivalRow[]
+  >`SELECT * FROM festival_foods WHERE id = ${id} LIMIT 1`;
   if (!existing[0]) return undefined;
   const cur = existing[0];
   const rows = await sql<FestivalRow[]>`
@@ -1062,7 +1193,8 @@ export async function updateFestivalFood(
 }
 
 export async function deleteFestivalFood(id: string): Promise<boolean> {
-  const rows = await sql`DELETE FROM festival_foods WHERE id = ${id} RETURNING id`;
+  const rows =
+    await sql`DELETE FROM festival_foods WHERE id = ${id} RETURNING id`;
   return rows.length > 0;
 }
 
@@ -1099,7 +1231,9 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 export async function getSettings(): Promise<Settings> {
-  const rows = await sql<SettingsRow[]>`SELECT * FROM settings WHERE id = 1 LIMIT 1`;
+  const rows = await sql<
+    SettingsRow[]
+  >`SELECT * FROM settings WHERE id = 1 LIMIT 1`;
   if (!rows[0]) {
     // Self-heal if the singleton row is missing (e.g. seed not run yet).
     await sql`
@@ -1122,7 +1256,9 @@ export async function getSettings(): Promise<Settings> {
   };
 }
 
-export async function updateSettings(patch: Partial<Settings>): Promise<Settings> {
+export async function updateSettings(
+  patch: Partial<Settings>,
+): Promise<Settings> {
   const current = await getSettings();
   const next: Settings = {
     storeName: patch.storeName?.trim() || current.storeName,

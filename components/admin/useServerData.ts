@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 /**
  * Client-side list state that stays in sync with its server-rendered prop.
@@ -17,9 +17,11 @@ export function useServerData<T>(serverData: T) {
   // `serverData` is a new reference each time the server component re-renders;
   // client-only re-renders (filters, pagination) keep the same reference, so
   // this only fires on an actual server refresh.
-  useEffect(() => {
+  const [previous, setPrevious] = useState(serverData);
+  if (previous !== serverData) {
+    setPrevious(serverData);
     setData(serverData);
-  }, [serverData]);
+  }
 
   return [data, setData] as const;
 }

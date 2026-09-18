@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { isSoldOut, type Product } from "@/data/products";
 import { useCart } from "@/components/cart/CartContext";
 
 export default function AddToCartButton({ product }: { product: Product }) {
-  const { qtyOf, add, setQty } = useCart();
+  const { lines, qtyOf, add, setQty } = useCart();
   const qty = qtyOf(product.id);
   const atLimit = product.stock != null && qty >= product.stock;
 
@@ -19,6 +20,24 @@ export default function AddToCartButton({ product }: { product: Product }) {
       </button>
     );
   }
+
+  if (
+    product.variants?.length ||
+    product.addons?.length ||
+    lines.some(
+      (l) =>
+        l.id === product.id &&
+        (l.variantId || l.addonIds?.length || l.instructions),
+    )
+  )
+    return (
+      <Link
+        href={`/product/${product.id}`}
+        className="mt-3 block rounded bg-brand py-2 text-center text-xs font-semibold text-cream"
+      >
+        {qty ? `${qty} in cart · Customize` : "Choose options"}
+      </Link>
+    );
 
   if (qty === 0) {
     return (
@@ -63,10 +82,20 @@ export default function AddToCartButton({ product }: { product: Product }) {
 
 function CartIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <circle cx="9" cy="20" r="1.5" />
       <circle cx="18" cy="20" r="1.5" />
-      <path d="M2 3h3l2.5 12h11l2-8H6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2 3h3l2.5 12h11l2-8H6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

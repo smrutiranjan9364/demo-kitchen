@@ -10,7 +10,10 @@ import LoginButton from "@/components/auth/LoginButton";
 import { getCurrentCustomer } from "@/lib/customer";
 
 export default async function Header() {
-  const [districts, customer] = await Promise.all([getDistrictNav(), getCurrentCustomer()]);
+  const [districts, customer] = await Promise.all([
+    getDistrictNav(),
+    getCurrentCustomer(),
+  ]);
   return (
     <header className="sticky top-0 z-50">
       {/* Top bar */}
@@ -37,28 +40,53 @@ export default async function Header() {
 
           {/* Search (desktop) */}
           <div className="mx-auto hidden w-full max-w-xl md:block">
-            <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-700">
+            <form
+              action="/restaurants"
+              className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-700"
+            >
               <SearchIcon className="h-4 w-4 text-gray-400" />
               <input
                 type="search"
+                name="q"
                 aria-label="Search products"
                 placeholder="Search for snacks, sweets, spices and more..."
                 className="w-full bg-transparent outline-none placeholder:text-gray-400"
               />
-            </div>
+              <button type="submit" className="text-brand">
+                Search
+              </button>
+            </form>
           </div>
 
           {/* Actions */}
           <div className="ml-auto flex items-center gap-3 text-sm sm:gap-5">
             {/* Social icons */}
             <div className="hidden items-center gap-3 lg:flex">
-              <a href="https://instagram.com" target="_blank" rel="noreferrer" aria-label="Instagram" className="hover:opacity-80">
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className="hover:opacity-80"
+              >
                 <InstagramIcon className="h-6 w-6" />
               </a>
-              <a href="https://facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook" className="hover:opacity-80">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Facebook"
+                className="hover:opacity-80"
+              >
                 <FacebookIcon className="h-6 w-6" />
               </a>
-              <a href="https://youtube.com" target="_blank" rel="noreferrer" aria-label="YouTube" className="hover:opacity-80">
+              <a
+                href="https://youtube.com"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="YouTube"
+                className="hover:opacity-80"
+              >
                 <YoutubeIcon className="h-6 w-6" />
               </a>
               <span className="h-4 w-px bg-cream/30" />
@@ -80,20 +108,30 @@ export default async function Header() {
 
         {/* Search (mobile) */}
         <div className="px-4 pb-3 md:hidden">
-          <div className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-700">
+          <form
+            action="/restaurants"
+            className="flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm text-gray-700"
+          >
             <SearchIcon className="h-4 w-4 text-gray-400" />
             <input
               type="search"
+              name="q"
               aria-label="Search products"
               placeholder="Search snacks, sweets, spices..."
               className="w-full bg-transparent outline-none placeholder:text-gray-400"
             />
-          </div>
+            <button type="submit" className="text-brand">
+              Search
+            </button>
+          </form>
         </div>
       </div>
 
       {/* Category nav (desktop) */}
-      <nav aria-label="Main navigation" className="hidden border-b border-brand/10 bg-cream-soft md:block">
+      <nav
+        aria-label="Main navigation"
+        className="hidden border-b border-brand/10 bg-cream-soft md:block"
+      >
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-1.5 px-4 py-2 sm:px-6">
           {NAV_CATEGORIES.map((item) => {
             const isPrimary = item.icon === "grid";
@@ -122,7 +160,13 @@ export default async function Header() {
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="m21 21-4.3-4.3" strokeLinecap="round" />
     </svg>
@@ -131,7 +175,13 @@ function SearchIcon({ className }: { className?: string }) {
 
 function PhoneIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <path
         d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.5 2.7.6a2 2 0 0 1 1.7 2Z"
         strokeLinecap="round"
@@ -153,9 +203,32 @@ function InstagramIcon({ className }: { className?: string }) {
           <stop offset="1" stopColor="#4f5bd5" />
         </linearGradient>
       </defs>
-      <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#ig-grad)" />
-      <rect x="6" y="6" width="12" height="12" rx="4" fill="none" stroke="#fff" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="3" fill="none" stroke="#fff" strokeWidth="1.8" />
+      <rect
+        x="1.5"
+        y="1.5"
+        width="21"
+        height="21"
+        rx="6"
+        fill="url(#ig-grad)"
+      />
+      <rect
+        x="6"
+        y="6"
+        width="12"
+        height="12"
+        rx="4"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.8"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="1.8"
+      />
       <circle cx="17" cy="7" r="1.1" fill="#fff" />
     </svg>
   );

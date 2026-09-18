@@ -19,7 +19,9 @@ function createClient(): Sql {
   }
   return postgres(url, {
     // Neon requires TLS. `require` verifies the chain via the system CAs.
-    ssl: "require",
+    ssl: ["localhost", "127.0.0.1"].includes(new URL(url).hostname)
+      ? false
+      : "require",
     // Keep the per-instance pool small — serverless spins up many instances,
     // and the Neon pooler multiplexes them on its side.
     max: 5,

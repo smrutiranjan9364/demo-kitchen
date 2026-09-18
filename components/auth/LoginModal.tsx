@@ -55,14 +55,23 @@ export default function LoginModal({
           password: fd.get("password"),
         }),
       });
-      const data = (await response.json().catch(() => ({}))) as { error?: string };
-      if (!response.ok) throw new Error(data.error || "Something went wrong. Please try again.");
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+      };
+      if (!response.ok)
+        throw new Error(
+          data.error || "Something went wrong. Please try again.",
+        );
       // The session cookie is set; re-render server components so the header
       // and account page pick it up.
       router.refresh();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setBusy(false);
     }
@@ -101,25 +110,56 @@ export default function LoginModal({
         <form onSubmit={submit} className="mt-5 space-y-4">
           {mode === "register" ? (
             <>
-              <Field label="Full name" name="name" type="text" placeholder="Rosy Sahoo" autoComplete="name" />
-              <Field label="Phone" name="phone" type="tel" placeholder="6370649364" autoComplete="tel" />
+              <Field
+                label="Full name"
+                name="name"
+                type="text"
+                placeholder="Rosy Sahoo"
+                autoComplete="name"
+              />
+              <Field
+                label="Phone"
+                name="phone"
+                type="tel"
+                placeholder="6370649364"
+                autoComplete="tel"
+              />
             </>
           ) : null}
-          <Field label="Email" name="email" type="email" placeholder="you@example.com" autoComplete="email" />
+          <Field
+            label="Email"
+            name="email"
+            type="email"
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
           <Field
             label="Password"
             name="password"
             type="password"
-            placeholder={mode === "register" ? "At least 8 characters" : "••••••••"}
-            autoComplete={mode === "register" ? "new-password" : "current-password"}
+            placeholder={
+              mode === "register" ? "At least 8 characters" : "••••••••"
+            }
+            autoComplete={
+              mode === "register" ? "new-password" : "current-password"
+            }
             minLength={mode === "register" ? 8 : undefined}
           />
           {mode === "register" ? (
-            <Field label="Confirm password" name="confirm" type="password" placeholder="••••••••" autoComplete="new-password" />
+            <Field
+              label="Confirm password"
+              name="confirm"
+              type="password"
+              placeholder="••••••••"
+              autoComplete="new-password"
+            />
           ) : null}
 
           {error ? (
-            <p role="alert" className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200">
+            <p
+              role="alert"
+              className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700 ring-1 ring-red-200"
+            >
               {error}
             </p>
           ) : null}
@@ -129,22 +169,40 @@ export default function LoginModal({
             disabled={busy}
             className="w-full bg-brand py-3 text-xs font-semibold tracking-widest text-cream transition hover:bg-brand-light disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {busy ? "PLEASE WAIT…" : mode === "login" ? "LOG IN" : "CREATE ACCOUNT"}
+            {busy
+              ? "PLEASE WAIT…"
+              : mode === "login"
+                ? "LOG IN"
+                : "CREATE ACCOUNT"}
           </button>
         </form>
 
+        <a
+          href="/account/recovery"
+          className="mt-4 block text-center text-sm text-brand underline"
+        >
+          Forgot password?
+        </a>
         <p className="mt-5 text-center text-sm text-gray-500">
           {mode === "login" ? (
             <>
               New here?{" "}
-              <button type="button" onClick={() => switchMode("register")} className="font-semibold text-brand hover:text-brand-light">
+              <button
+                type="button"
+                onClick={() => switchMode("register")}
+                className="font-semibold text-brand hover:text-brand-light"
+              >
                 Create an account
               </button>
             </>
           ) : (
             <>
               Already have an account?{" "}
-              <button type="button" onClick={() => switchMode("login")} className="font-semibold text-brand hover:text-brand-light">
+              <button
+                type="button"
+                onClick={() => switchMode("login")}
+                className="font-semibold text-brand hover:text-brand-light"
+              >
                 Log in
               </button>
             </>
@@ -172,7 +230,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-gray-600">{label}</span>
+      <span className="mb-1 block text-xs font-medium text-gray-600">
+        {label}
+      </span>
       <input
         name={name}
         type={type}

@@ -1,5 +1,11 @@
-export type Product = {
+import type { MenuOption, Selection } from "@/lib/menu";
+export type Product = Selection & {
+  variants?: MenuOption[];
+  addons?: MenuOption[];
+  basePrice?: number;
   id: string;
+  restaurantId?: string;
+  available?: boolean;
   name: string;
   price: number;
   oldPrice?: number;
@@ -19,7 +25,8 @@ export type Product = {
   storage?: string;
 };
 
-export const isSoldOut = (p: Product) => p.stock != null && p.stock <= 0;
+export const isSoldOut = (p: Product) =>
+  p.available === false || (p.stock != null && p.stock <= 0);
 
 const img = (id: string) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=600&q=80`;
@@ -69,11 +76,46 @@ const pic = (ref: string) =>
   ref.startsWith("http") || ref.startsWith("/") ? ref : img(ref);
 
 export const BEST_SELLERS: Product[] = [
-  { id: "cuttack-chanachur", name: "Cuttack Chanachur", price: 160, rating: 4.8, reviews: 124, image: pic(W.chanachur) },
-  { id: "chhena-poda", name: "Chhena Poda", price: 240, rating: 4.9, reviews: 210, image: pic(W.chhenaPoda) },
-  { id: "puri-khaja", name: "Puri Khaja", price: 260, rating: 4.9, reviews: 188, image: pic(W.khaja) },
-  { id: "manda-pitha", name: "Manda Pitha", price: 190, rating: 4.7, reviews: 89, image: pic(W.manda) },
-  { id: "pahala-rasgulla", name: "Pahala Rasgulla", price: 220, rating: 5.0, reviews: 142, image: pic(W.rasgulla) },
+  {
+    id: "cuttack-chanachur",
+    name: "Cuttack Chanachur",
+    price: 160,
+    rating: 4.8,
+    reviews: 124,
+    image: pic(W.chanachur),
+  },
+  {
+    id: "chhena-poda",
+    name: "Chhena Poda",
+    price: 240,
+    rating: 4.9,
+    reviews: 210,
+    image: pic(W.chhenaPoda),
+  },
+  {
+    id: "puri-khaja",
+    name: "Puri Khaja",
+    price: 260,
+    rating: 4.9,
+    reviews: 188,
+    image: pic(W.khaja),
+  },
+  {
+    id: "manda-pitha",
+    name: "Manda Pitha",
+    price: 190,
+    rating: 4.7,
+    reviews: 89,
+    image: pic(W.manda),
+  },
+  {
+    id: "pahala-rasgulla",
+    name: "Pahala Rasgulla",
+    price: 220,
+    rating: 5.0,
+    reviews: 142,
+    image: pic(W.rasgulla),
+  },
 ];
 
 export type FestivalFood = {
@@ -84,18 +126,83 @@ export type FestivalFood = {
 };
 
 export const FESTIVAL_FOODS: FestivalFood[] = [
-  { id: "chhena-poda", name: "Chhena Poda", festival: "Raja Parba", image: pic(W.chhenaPoda) },
-  { id: "arisa-pitha", name: "Arisa Pitha", festival: "Makar Sankranti", image: pic(W.arisa) },
-  { id: "rasabali", name: "Rasabali", festival: "Kartik Purnima", image: pic(W.rasabali) },
-  { id: "enduri-pitha", name: "Enduri Pitha", festival: "Prathamastami", image: pic(W.enduri) },
+  {
+    id: "chhena-poda",
+    name: "Chhena Poda",
+    festival: "Raja Parba",
+    image: pic(W.chhenaPoda),
+  },
+  {
+    id: "arisa-pitha",
+    name: "Arisa Pitha",
+    festival: "Makar Sankranti",
+    image: pic(W.arisa),
+  },
+  {
+    id: "rasabali",
+    name: "Rasabali",
+    festival: "Kartik Purnima",
+    image: pic(W.rasabali),
+  },
+  {
+    id: "enduri-pitha",
+    name: "Enduri Pitha",
+    festival: "Prathamastami",
+    image: pic(W.enduri),
+  },
 ];
 
 export const TOP_DEALS: Product[] = [
-  { id: "puri-khaja-box", name: "Puri Khaja Box", price: 442, oldPrice: 520, rating: 4.9, reviews: 89, discount: 15, image: pic(W.khaja) },
-  { id: "namkeen-family-combo", name: "Namkeen Family Combo", price: 256, oldPrice: 320, rating: 4.7, reviews: 124, discount: 20, image: pic(W.chanachur) },
-  { id: "kandhamal-spice-set", name: "Kandhamal Spice Set", price: 396, oldPrice: 440, rating: 4.6, reviews: 215, discount: 10, image: pic(W.turmeric) },
-  { id: "biri-badi-pack", name: "Biri Badi Pack", price: 152, oldPrice: 190, rating: 4.5, reviews: 76, discount: 20, image: pic("1631452180519-c014fe946bc7") },
-  { id: "odia-thali-hamper", name: "Odia Thali Hamper", price: 585, oldPrice: 650, rating: 4.8, reviews: 63, discount: 10, image: pic("1585937421612-70a008356fbe") },
+  {
+    id: "puri-khaja-box",
+    name: "Puri Khaja Box",
+    price: 442,
+    oldPrice: 520,
+    rating: 4.9,
+    reviews: 89,
+    discount: 15,
+    image: pic(W.khaja),
+  },
+  {
+    id: "namkeen-family-combo",
+    name: "Namkeen Family Combo",
+    price: 256,
+    oldPrice: 320,
+    rating: 4.7,
+    reviews: 124,
+    discount: 20,
+    image: pic(W.chanachur),
+  },
+  {
+    id: "kandhamal-spice-set",
+    name: "Kandhamal Spice Set",
+    price: 396,
+    oldPrice: 440,
+    rating: 4.6,
+    reviews: 215,
+    discount: 10,
+    image: pic(W.turmeric),
+  },
+  {
+    id: "biri-badi-pack",
+    name: "Biri Badi Pack",
+    price: 152,
+    oldPrice: 190,
+    rating: 4.5,
+    reviews: 76,
+    discount: 20,
+    image: pic("1631452180519-c014fe946bc7"),
+  },
+  {
+    id: "odia-thali-hamper",
+    name: "Odia Thali Hamper",
+    price: 585,
+    oldPrice: 650,
+    rating: 4.8,
+    reviews: 63,
+    discount: 10,
+    image: pic("1585937421612-70a008356fbe"),
+  },
 ];
 
 // Per-category catalog. Each entry: [name, price, rating, reviews, imageRef].

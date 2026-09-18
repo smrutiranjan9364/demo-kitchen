@@ -1,6 +1,10 @@
+import { paymentConfigured } from "@/lib/payments";
+import { sql } from "@/lib/db";
 import { routeMetadata } from "@/lib/seo";
 import Link from "next/link";
-import CheckoutClient, { type CheckoutPrefill } from "@/components/checkout/CheckoutClient";
+import CheckoutClient, {
+  type CheckoutPrefill,
+} from "@/components/checkout/CheckoutClient";
 import { getOrdersForCustomer, getSettings } from "@/lib/store";
 import { getCurrentCustomer } from "@/lib/customer";
 
@@ -11,19 +15,41 @@ export const metadata = routeMetadata("/checkout");
 
 export default async function CheckoutPage() {
   // Quote the same delivery rates the orders API will charge.
-  const [{ deliveryFee, freeDeliveryOver, deliveryPincodes }, customer] = await Promise.all([
-    getSettings(),
-    getCurrentCustomer(),
-  ]);
+  const [{ deliveryFee, freeDeliveryOver, deliveryPincodes }, customer] =
+    await Promise.all([getSettings(), getCurrentCustomer()]);
 
   // Signed in: prefill from the last order (full address) or the account.
   let prefill: CheckoutPrefill | undefined;
   if (customer) {
     const [last] = await getOrdersForCustomer(customer.id);
     prefill = last
-      ? { name: last.name, phone: last.phone, email: last.email, address: last.address, city: last.city, state: last.state, pincode: last.pincode }
+      ? {
+          name: last.name,
+          phone: last.phone,
+          email: last.email,
+          address: last.address,
+          city: last.city,
+          state: last.state,
+          pincode: last.pincode,
+        }
       : { name: customer.name, phone: customer.phone, email: customer.email };
   }
+
+  const addresses = customer
+    ? await sql<
+        {
+          id: string;
+          label: string;
+          name: string;
+          phone: string;
+          address: string;
+          city: string;
+          state: string;
+          pincode: string;
+          landmark: string;
+        }[]
+      >`SELECT id,label,name,phone,address,city,state,pincode,landmark FROM addresses WHERE customer_id=${customer.id} ORDER BY created_at DESC`
+    : [];
 
   return (
     <div className="bg-cream-soft">
@@ -47,7 +73,13 @@ export default async function CheckoutPage() {
 
       {/* Content */}
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6">
-        <CheckoutClient rates={{ deliveryFee, freeDeliveryOver }} prefill={prefill} deliveryPincodes={deliveryPincodes} />
+        <CheckoutClient
+          onlinePayment={paymentConfigured()}
+          addresses={addresses}
+          rates={{ deliveryFee, freeDeliveryOver }}
+          prefill={prefill}
+          deliveryPincodes={deliveryPincodes}
+        />
       </div>
     </div>
   );

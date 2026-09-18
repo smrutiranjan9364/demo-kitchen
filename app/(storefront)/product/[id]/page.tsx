@@ -1,3 +1,5 @@
+import FavoriteButton from "@/components/platform/FavoriteButton";
+import { sql } from "@/lib/db";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
@@ -9,7 +11,12 @@ import VegMark from "@/components/product/VegMark";
 import { productDescription } from "@/data/products";
 import { getProductPageData, resolveDistrict } from "@/lib/catalog";
 import PincodeCheck from "@/components/delivery/PincodeCheck";
-import { getReviewsForProduct, getSettings, hasPurchased, hasReviewed } from "@/lib/store";
+import {
+  getReviewsForProduct,
+  getSettings,
+  hasPurchased,
+  hasReviewed,
+} from "@/lib/store";
 import { getCurrentCustomer } from "@/lib/customer";
 import { createMetadata } from "@/lib/seo";
 import { productSeo } from "@/lib/catalog-seo";
@@ -25,13 +32,23 @@ export async function generateMetadata({
   const { id } = await params;
   const data = await getProductPageData(id);
   if (!data) notFound();
-  if (data.canonicalId !== id) permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
+  if (data.canonicalId !== id)
+    permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
   return createMetadata(productSeo(data.product));
 }
 
-function Stars({ rating, className = "" }: { rating: number; className?: string }) {
+function Stars({
+  rating,
+  className = "",
+}: {
+  rating: number;
+  className?: string;
+}) {
   return (
-    <span className={`text-amber-400 ${className}`} aria-label={`${rating} out of 5`}>
+    <span
+      className={`text-amber-400 ${className}`}
+      aria-label={`${rating} out of 5`}
+    >
       {"★★★★★".split("").map((s, i) => (
         <span key={i} className={i < Math.round(rating) ? "" : "text-gray-300"}>
           ★
@@ -49,7 +66,8 @@ export default async function ProductDetailPage({
   const { id } = await params;
   const data = await getProductPageData(id);
   if (!data) notFound();
-  if (data.canonicalId !== id) permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
+  if (data.canonicalId !== id)
+    permanentRedirect(`/product/${encodeURIComponent(data.canonicalId)}`);
   const { product, category, related } = data;
   const page = productSeo(product);
   const customer = await getCurrentCustomer();
@@ -58,8 +76,15 @@ export default async function ProductDetailPage({
     getSettings(),
     customer ? hasPurchased(customer.id, product.id) : Promise.resolve(false),
     customer ? hasReviewed(customer.id, product.id) : Promise.resolve(false),
-    product.district ? resolveDistrict(product.district) : Promise.resolve(undefined),
+    product.district
+      ? resolveDistrict(product.district)
+      : Promise.resolve(undefined),
   ]);
+  const [restaurant] = await sql`SELECT name,delivery_fee,pincodes,eta_minutes FROM restaurants WHERE id=${product.restaurantId ?? "odia-kitchen"}`;
+  const houseProduct = !product.restaurantId || product.restaurantId === "odia-kitchen";
+  const favorite = customer
+    ? await sql`SELECT 1 FROM favorites WHERE customer_id=${customer.id} AND product_id=${product.id}`
+    : [];
   // Only the facts the kitchen has actually filled in — no empty rows.
   const details = (
     [
@@ -73,14 +98,21 @@ export default async function ProductDetailPage({
 
   return (
     <div className="bg-cream-soft">
-      <PageJsonLd page={page} product={product} breadcrumbs={[
-        { name: "Home", path: "/" },
-        ...(category ? [{ name: category.label, path: category.href }] : []),
-        { name: product.name, path: page.path },
-      ]} />
+      <PageJsonLd
+        page={page}
+        product={product}
+        breadcrumbs={[
+          { name: "Home", path: "/" },
+          ...(category ? [{ name: category.label, path: category.href }] : []),
+          { name: product.name, path: page.path },
+        ]}
+      />
       {/* Breadcrumb */}
       <div className="border-b border-black/5 bg-white">
-        <nav aria-label="Breadcrumb" className="mx-auto max-w-7xl px-4 py-4 text-xs text-gray-500 sm:px-6">
+        <nav
+          aria-label="Breadcrumb"
+          className="mx-auto max-w-7xl px-4 py-4 text-xs text-gray-500 sm:px-6"
+        >
           <Link href="/" className="hover:text-brand">
             Home
           </Link>
@@ -93,7 +125,9 @@ export default async function ProductDetailPage({
               <span className="mx-2">/</span>
             </>
           ) : null}
-          <span aria-current="page" className="text-gray-800">{product.name}</span>
+          <span aria-current="page" className="text-gray-800">
+            {product.name}
+          </span>
         </nav>
       </div>
 
@@ -124,11 +158,17 @@ export default async function ProductDetailPage({
 
             <div className="mt-3 flex items-center gap-2 text-sm">
               {product.reviews > 0 ? (
-                <a href="#reviews" className="flex items-center gap-2 hover:text-brand">
+                <a
+                  href="#reviews"
+                  className="flex items-center gap-2 hover:text-brand"
+                >
                   <Stars rating={product.rating} />
-                  <span className="font-medium text-gray-700">{product.rating.toFixed(1)}</span>
+                  <span className="font-medium text-gray-700">
+                    {product.rating.toFixed(1)}
+                  </span>
                   <span className="text-gray-400">
-                    ({product.reviews} verified review{product.reviews === 1 ? "" : "s"})
+                    ({product.reviews} verified review
+                    {product.reviews === 1 ? "" : "s"})
                   </span>
                 </a>
               ) : (
@@ -148,7 +188,9 @@ export default async function ProductDetailPage({
                 </span>
               ) : null}
               {product.weight ? (
-                <span className="text-sm text-gray-500">/ {product.weight}</span>
+                <span className="text-sm text-gray-500">
+                  / {product.weight}
+                </span>
               ) : null}
             </div>
 
@@ -156,27 +198,44 @@ export default async function ProductDetailPage({
               {product.description ?? productDescription(product)}
             </p>
 
+            {restaurant?<p className="mt-4 text-sm text-gray-500"><Link href={`/restaurants/${product.restaurantId ?? "odia-kitchen"}`} className="text-brand underline">{restaurant.name}</Link> · Estimated delivery {restaurant.eta_minutes} minutes</p>:null}
             <ProductActions product={product} />
+            <FavoriteButton
+              productId={product.id}
+              initial={favorite.length > 0}
+            />
 
             {/* Meta */}
             <ul className="mt-8 space-y-2 border-t border-black/5 pt-6 text-sm text-gray-500">
               <li>✓ Freshly made in small batches</li>
-              <li>✓ Free delivery on orders over ₹{settings.freeDeliveryOver}</li>
+              <li>
+                {houseProduct ? `✓ Free delivery on orders over ₹${settings.freeDeliveryOver}` : `✓ Delivery ₹${restaurant?.delivery_fee ?? 0}`}
+              </li>
               <li>✓ Hygienically packed with care</li>
             </ul>
 
             {details.length > 0 ? (
               <dl className="mt-6 grid gap-4 rounded-xl bg-white p-5 text-sm shadow-sm ring-1 ring-black/5 sm:grid-cols-2">
                 {details.map(([label, value]) => (
-                  <div key={label} className={label === "Ingredients" ? "sm:col-span-2" : ""}>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</dt>
-                    <dd className="mt-0.5 leading-relaxed text-gray-700">{value}</dd>
+                  <div
+                    key={label}
+                    className={label === "Ingredients" ? "sm:col-span-2" : ""}
+                  >
+                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
+                      {label}
+                    </dt>
+                    <dd className="mt-0.5 leading-relaxed text-gray-700">
+                      {value}
+                    </dd>
                   </div>
                 ))}
               </dl>
             ) : null}
 
-            <PincodeCheck prefixes={settings.deliveryPincodes} className="mt-6" />
+            <PincodeCheck
+              prefixes={houseProduct ? settings.deliveryPincodes : (restaurant?.pincodes ?? "")}
+              className="mt-6"
+            />
           </div>
         </div>
 
@@ -184,13 +243,17 @@ export default async function ProductDetailPage({
         <ProductReviews
           productId={product.id}
           initialReviews={reviews}
-          reviewer={customer ? { name: customer.name, purchased, reviewed } : null}
+          reviewer={
+            customer ? { name: customer.name, purchased, reviewed } : null
+          }
         />
 
         {/* Related */}
         {related.length > 0 ? (
           <section className="mt-14">
-            <h2 className="mb-6 font-serif text-2xl text-gray-900">You may also like</h2>
+            <h2 className="mb-6 font-serif text-2xl text-gray-900">
+              You may also like
+            </h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {related.map((p) => (
                 <ProductCard key={p.id} product={p} headingLevel={3} />

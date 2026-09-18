@@ -78,3 +78,12 @@ body {
     animation: none;
   }
 }
+
+/* Keep an element scrollable while hiding its scrollbar (used by the admin sidebar). */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and legacy Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}

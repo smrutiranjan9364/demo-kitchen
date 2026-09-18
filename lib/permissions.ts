@@ -3,6 +3,7 @@
 
 // Grantable rights — one per manageable sidebar page.
 export const RIGHTS = [
+  { key: "platform", label: "Platform operations" },
   { key: "categories", label: "Categories" },
   { key: "districts", label: "Districts" },
   { key: "products", label: "Products" },

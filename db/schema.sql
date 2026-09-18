@@ -132,6 +132,17 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 CREATE INDEX IF NOT EXISTS messages_created_idx ON messages (created_at DESC);
 
+-- Pre-launch interest list. Visitors register interest from the launch teaser
+-- modal on the storefront home. Email is UNIQUE so a repeat submit is a no-op,
+-- and the running count (number of rows) is what the modal shows off.
+CREATE TABLE IF NOT EXISTS interest_signups (
+  id         TEXT PRIMARY KEY,
+  email      TEXT NOT NULL UNIQUE,
+  name       TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS interest_signups_created_idx ON interest_signups (created_at DESC);
+
 CREATE TABLE IF NOT EXISTS users (
   username      TEXT PRIMARY KEY,
   password_hash TEXT NOT NULL,

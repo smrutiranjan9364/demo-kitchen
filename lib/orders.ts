@@ -1,3 +1,4 @@
+import { cartKey, type Selection } from "@/lib/menu";
 // Order vocabulary and pricing. Plain data + arithmetic with no server imports,
 // so the storefront and the orders API share one definition of what an order
 // costs. The server always recomputes totals from DB prices — a subtotal that
@@ -13,9 +14,13 @@ export const ORDER_STATUSES = [
   "Placed",
   "Confirmed",
   "Preparing",
+  "Ready for Pickup",
+  "Rider Assigned",
+  "Picked Up",
   "Dispatched",
   "Delivered",
   "Cancelled",
+  "Rejected",
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
@@ -37,7 +42,9 @@ export function priceOrder(
 ) {
   const subtotal = lines.reduce((sum, line) => sum + line.price * line.qty, 0);
   const delivery =
-    subtotal === 0 || subtotal >= rates.freeDeliveryOver ? 0 : rates.deliveryFee;
+    subtotal === 0 || subtotal >= rates.freeDeliveryOver
+      ? 0
+      : rates.deliveryFee;
   return { subtotal, delivery, total: subtotal + delivery };
 }
 
@@ -45,14 +52,43 @@ export function priceOrder(
 // Indian mobile number and an Indian state — not on where the shopper is
 // browsing from, so someone abroad can still order for family back home.
 export const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa",
-  "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala",
-  "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland",
-  "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura",
-  "Uttar Pradesh", "Uttarakhand", "West Bengal",
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
   // Union territories
-  "Andaman and Nicobar Islands", "Chandigarh", "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi", "Jammu and Kashmir", "Ladakh", "Lakshadweep", "Puducherry",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
 ] as const;
 
 export function isIndianState(state: string): boolean {
@@ -96,7 +132,7 @@ export function isServiceable(pincode: string, list: string): boolean {
 export const MAX_QTY = 50; // per product — a home kitchen isn't shipping pallets
 export const MAX_LINES = 50; // distinct products in one order
 
-export type CartRequestLine = { id: string; qty: number };
+export type CartRequestLine = { id: string; qty: number } & Selection;
 
 // Validates the `[{id, qty}]` a browser posted and merges repeated ids. Merging
 // happens *before* the per-product cap so splitting one product across several
@@ -104,22 +140,55 @@ export type CartRequestLine = { id: string; qty: number };
 export function parseCartRequest(
   raw: unknown,
 ): { error: string } | { lines: CartRequestLine[] } {
-  if (!Array.isArray(raw) || raw.length === 0) return { error: "Your cart is empty." };
-  if (raw.length > MAX_LINES) return { error: "That order has too many different items." };
+  if (!Array.isArray(raw) || raw.length === 0)
+    return { error: "Your cart is empty." };
+  if (raw.length > MAX_LINES)
+    return { error: "That order has too many different items." };
 
-  const merged = new Map<string, number>();
+  const merged = new Map<string, CartRequestLine>();
+  const quantities = new Map<string, number>();
   for (const entry of raw) {
-    const item = entry as { id?: unknown; qty?: unknown };
-    const id = typeof item?.id === "string" ? item.id.trim() : "";
-    const qty = typeof item?.qty === "number" ? item.qty : Number(item?.qty);
-    if (!id || id.length > 100 || !Number.isInteger(qty) || qty < 1) {
-      return { error: "Your cart looks invalid. Please review it and try again." };
+    if (!entry || typeof entry !== "object")
+      return { error: "Your cart looks invalid." };
+    const item = entry as Record<string, unknown>;
+    const id = typeof item.id === "string" ? item.id.trim() : "";
+    const qty = typeof item.qty === "number" ? item.qty : Number(item.qty);
+    if (!id || id.length > 100 || !Number.isInteger(qty) || qty < 1)
+      return {
+        error: "Your cart looks invalid. Please review it and try again.",
+      };
+    const line: CartRequestLine = { id, qty };
+    if (item.variantId !== undefined) {
+      if (typeof item.variantId !== "string" || item.variantId.length > 100)
+        return { error: "Invalid portion selection." };
+      if (item.variantId) line.variantId = item.variantId;
     }
-    merged.set(id, (merged.get(id) ?? 0) + qty);
+    if (item.addonIds !== undefined) {
+      if (
+        !Array.isArray(item.addonIds) ||
+        item.addonIds.length > 20 ||
+        item.addonIds.some((a) => typeof a !== "string" || a.length > 100)
+      )
+        return { error: "Invalid add-on selection." };
+      if (item.addonIds.length)
+        line.addonIds = [...new Set(item.addonIds as string[])].sort();
+    }
+    if (item.instructions !== undefined) {
+      if (
+        typeof item.instructions !== "string" ||
+        item.instructions.length > 200
+      )
+        return { error: "Keep item instructions under 200 characters." };
+      if (item.instructions.trim())
+        line.instructions = item.instructions.trim();
+    }
+    const key = cartKey(line),
+      previous = merged.get(key);
+    merged.set(key, { ...line, qty: (previous?.qty ?? 0) + qty });
+    quantities.set(id, (quantities.get(id) ?? 0) + qty);
   }
-
-  for (const qty of merged.values()) {
-    if (qty > MAX_QTY) return { error: `You can order at most ${MAX_QTY} of any one item.` };
-  }
-  return { lines: [...merged].map(([id, qty]) => ({ id, qty })) };
+  for (const qty of quantities.values())
+    if (qty > MAX_QTY)
+      return { error: `You can order at most ${MAX_QTY} of any one item.` };
+  return { lines: [...merged.values()] };
 }

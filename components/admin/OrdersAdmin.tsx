@@ -1,5 +1,6 @@
 "use client";
 
+import { canTransition } from "@/lib/commerce";
 import { useState } from "react";
 import { useAdminUI } from "@/components/admin/AdminUI";
 import { useServerData } from "@/components/admin/useServerData";
@@ -19,29 +20,49 @@ function fmtDate(iso: string) {
   }
 }
 
-export default function OrdersAdmin({ orders: serverOrders }: { orders: Order[] }) {
+export default function OrdersAdmin({
+  orders: serverOrders,
+}: {
+  orders: Order[];
+}) {
   const [orders, setOrders] = useServerData(serverOrders);
   const { toast } = useAdminUI();
   const [saving, setSaving] = useState<string | null>(null);
 
   async function changeStatus(order: Order, status: OrderStatus) {
+    let note = "";
+    if (["Cancelled", "Rejected"].includes(status)) {
+      const reason = prompt("Cancellation reason");
+      if (!reason) return;
+      note = reason;
+    }
     const previous = order.status;
     setSaving(order.id);
     // Optimistic: the select shows the new stage while the write is in flight.
-    setOrders((list) => list.map((o) => (o.id === order.id ? { ...o, status } : o)));
+    setOrders((list) =>
+      list.map((o) => (o.id === order.id ? { ...o, status } : o)),
+    );
     try {
       const response = await fetch(`/api/admin/orders/${order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, note }),
       });
-      if (!response.ok) throw new Error("failed");
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || "Could not update order.");
+      }
       toast(`Order marked ${status}`);
-    } catch {
+    } catch (error) {
       setOrders((list) =>
         list.map((o) => (o.id === order.id ? { ...o, status: previous } : o)),
       );
-      toast("Could not update the order status", "error");
+      toast(
+        error instanceof Error
+          ? error.message
+          : "Could not update the order status",
+        "error",
+      );
     } finally {
       setSaving(null);
     }
@@ -58,7 +79,10 @@ export default function OrdersAdmin({ orders: serverOrders }: { orders: Order[] 
   return (
     <div className="mt-6 space-y-4">
       {orders.map((o) => (
-        <div key={o.id} className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-black/5">
+        <div
+          key={o.id}
+          className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-black/5"
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="font-semibold text-gray-900">{o.name}</p>
@@ -87,7 +111,9 @@ export default function OrdersAdmin({ orders: serverOrders }: { orders: Order[] 
                 <span className="text-gray-700">
                   {it.name} × {it.qty}
                 </span>
-                <span className="text-gray-900">₹{(it.price * it.qty).toFixed(2)}</span>
+                <span className="text-gray-900">
+                  ₹{(it.price * it.qty).toFixed(2)}
+                </span>
               </li>
             ))}
           </ul>
@@ -108,7 +134,12 @@ export default function OrdersAdmin({ orders: serverOrders }: { orders: Order[] 
                 onChange={(e) => changeStatus(o, e.target.value as OrderStatus)}
                 className="rounded-md border border-black/10 px-2.5 py-1.5 text-sm text-gray-800 outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 disabled:opacity-60"
               >
-                {ORDER_STATUSES.map((s) => (
+                {ORDER_STATUSES.filter(
+                  (s) =>
+                    s === o.status ||
+                    (s !== "Rider Assigned" &&
+                      canTransition(o.status, s, "admin")),
+                ).map((s) => (
                   <option key={s} value={s}>
                     {s}
                   </option>

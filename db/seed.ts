@@ -6,15 +6,23 @@ config({ path: ".env.local" });
 config(); // also load .env if present (does not override existing vars)
 import postgres from "postgres";
 import { ALL_PRODUCTS, FESTIVAL_FOODS } from "../data/products";
-import { CATEGORIES, categorySlug, CONTACT, DISTRICTS_SEED } from "../data/site";
+import {
+  CATEGORIES,
+  categorySlug,
+  CONTACT,
+  DISTRICTS_SEED,
+} from "../data/site";
 
 // Mirrors the defaults previously baked into lib/store.ts.
 const DEFAULT_CATEGORY_IMAGE = "/images/wm/chanachur.jpg";
 
 const SEED_FESTIVAL_NOTES: Record<string, string> = {
-  "chhena-poda": "A caramelised cheese dessert, slow-baked to a smoky, golden finish.",
-  "arisa-pitha": "Sweet rice-flour cakes fried in ghee — a Sankranti favourite.",
-  rasabali: "Soft fried chhena discs soaked in thickened, cardamom-spiced milk.",
+  "chhena-poda":
+    "A caramelised cheese dessert, slow-baked to a smoky, golden finish.",
+  "arisa-pitha":
+    "Sweet rice-flour cakes fried in ghee — a Sankranti favourite.",
+  rasabali:
+    "Soft fried chhena discs soaked in thickened, cardamom-spiced milk.",
   "enduri-pitha":
     "Rice-and-lentil cakes steamed in fragrant turmeric leaves — the Prathamastami classic.",
 };
@@ -22,7 +30,12 @@ const SEED_FESTIVAL_NOTES: Record<string, string> = {
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error("DATABASE_URL is not set (add it to .env.local).");
-  const sql = postgres(url, { ssl: "require", max: 1 });
+  const sql = postgres(url, {
+    ssl: ["localhost", "127.0.0.1"].includes(new URL(url).hostname)
+      ? false
+      : "require",
+    max: 1,
+  });
 
   const isEmpty = async (table: string) => {
     const [{ n }] = await sql.unsafe<{ n: number }[]>(
@@ -32,7 +45,9 @@ async function main() {
   };
 
   // Products
-  if (await isEmpty("products")) {
+  const [{ catalogCount }] =
+    await sql`SELECT count(*)::int AS "catalogCount" FROM products WHERE category IS NOT NULL`;
+  if (catalogCount === 0) {
     for (const p of ALL_PRODUCTS) {
       await sql`
         INSERT INTO products (id, name, price, rating, reviews, category, image, old_price, discount)

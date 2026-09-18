@@ -8,7 +8,15 @@ import { AdminUIProvider } from "./AdminUI";
 import type { Role } from "@/lib/auth";
 import type { Right } from "@/lib/permissions";
 
-type CountKey = "categories" | "districts" | "products" | "festival" | "orders" | "reviews" | "messages" | "investments";
+type CountKey =
+  | "categories"
+  | "districts"
+  | "products"
+  | "festival"
+  | "orders"
+  | "reviews"
+  | "messages"
+  | "investments";
 type NavItem = {
   label: string;
   href: string;
@@ -45,43 +53,114 @@ const getServerSidebarPreference = () => false;
 
 const SECTIONS: NavSection[] = [
   {
-    items: [{ label: "Overview", href: "/backend/dashboard", icon: "grid" }],
+    items: [
+      { label: "Overview", href: "/backend/dashboard", icon: "grid" },
+      {
+        label: "Platform",
+        href: "/backend/dashboard/platform",
+        icon: "grid",
+        right: "platform",
+      },
+    ],
   },
   {
     label: "Catalog",
     items: [
-      { label: "Categories", href: "/backend/dashboard/categories", icon: "tag", countKey: "categories", right: "categories" },
-      { label: "Districts", href: "/backend/dashboard/districts", icon: "map", countKey: "districts", right: "districts" },
-      { label: "Products", href: "/backend/dashboard/products", icon: "box", countKey: "products", right: "products" },
-      { label: "Festival", href: "/backend/dashboard/festival", icon: "confetti", countKey: "festival", right: "festival" },
+      {
+        label: "Categories",
+        href: "/backend/dashboard/categories",
+        icon: "tag",
+        countKey: "categories",
+        right: "categories",
+      },
+      {
+        label: "Districts",
+        href: "/backend/dashboard/districts",
+        icon: "map",
+        countKey: "districts",
+        right: "districts",
+      },
+      {
+        label: "Products",
+        href: "/backend/dashboard/products",
+        icon: "box",
+        countKey: "products",
+        right: "products",
+      },
+      {
+        label: "Festival",
+        href: "/backend/dashboard/festival",
+        icon: "confetti",
+        countKey: "festival",
+        right: "festival",
+      },
     ],
   },
   {
     label: "Customers",
     items: [
-      { label: "Orders", href: "/backend/dashboard/orders", icon: "cart", countKey: "orders", right: "orders" },
-      { label: "Reviews", href: "/backend/dashboard/reviews", icon: "star", countKey: "reviews", right: "reviews" },
-      { label: "Messages", href: "/backend/dashboard/messages", icon: "mail", countKey: "messages", right: "messages" },
+      {
+        label: "Orders",
+        href: "/backend/dashboard/orders",
+        icon: "cart",
+        countKey: "orders",
+        right: "orders",
+      },
+      {
+        label: "Reviews",
+        href: "/backend/dashboard/reviews",
+        icon: "star",
+        countKey: "reviews",
+        right: "reviews",
+      },
+      {
+        label: "Messages",
+        href: "/backend/dashboard/messages",
+        icon: "mail",
+        countKey: "messages",
+        right: "messages",
+      },
     ],
   },
   {
     label: "Finance",
     items: [
-      { label: "Investments", href: "/backend/dashboard/investments", icon: "wallet", countKey: "investments", right: "investments" },
+      {
+        label: "Investments",
+        href: "/backend/dashboard/investments",
+        icon: "wallet",
+        countKey: "investments",
+        right: "investments",
+      },
     ],
   },
   {
     label: "Access",
     items: [
-      { label: "Users", href: "/backend/dashboard/admins", icon: "users", super: true },
-      { label: "Roles", href: "/backend/dashboard/roles", icon: "shield", super: true },
+      {
+        label: "Users",
+        href: "/backend/dashboard/admins",
+        icon: "users",
+        super: true,
+      },
+      {
+        label: "Roles",
+        href: "/backend/dashboard/roles",
+        icon: "shield",
+        super: true,
+      },
     ],
   },
   {
     label: "Account",
     items: [
       { label: "Profile", href: "/backend/dashboard/profile", icon: "user" },
-      { label: "Settings", href: "/backend/dashboard/settings", icon: "gear", right: "settings" },
+      {
+        label: "Settings",
+        href: "/backend/dashboard/settings",
+        icon: "gear",
+        right: "settings",
+      },
     ],
   },
 ];
@@ -138,7 +217,9 @@ export default function AdminShell({
   const flatItems = visibleSections.flatMap((s) => s.items);
 
   const isActive = (href: string) =>
-    href === "/backend/dashboard" ? pathname === href : pathname.startsWith(href);
+    href === "/backend/dashboard"
+      ? pathname === href
+      : pathname.startsWith(href);
 
   const roleLabel = role === "super" ? "Super Admin" : "Admin";
 
@@ -170,7 +251,9 @@ export default function AdminShell({
           </svg>
         </button>
 
-        <div className={`flex items-center py-5 ${collapsed ? "justify-center px-0" : "px-6"}`}>
+        <div
+          className={`flex items-center py-5 ${collapsed ? "justify-center px-0" : "px-6"}`}
+        >
           {collapsed ? (
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/15 font-serif text-lg italic text-[#f06aa8]">
               O
@@ -191,7 +274,7 @@ export default function AdminShell({
           )}
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2">
+        <nav className="no-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-3 py-2">
           {visibleSections.map((section, i) => (
             <div key={section.label ?? i} className={i === 0 ? "" : "mt-5"}>
               {section.label && !collapsed ? (
@@ -199,7 +282,9 @@ export default function AdminShell({
                   {section.label}
                 </p>
               ) : null}
-              {section.label && collapsed ? <div className="mx-3 mb-2 border-t border-white/10" /> : null}
+              {section.label && collapsed ? (
+                <div className="mx-3 mb-2 border-t border-white/10" />
+              ) : null}
               <div className="space-y-1">
                 {section.items.map((item) => (
                   <NavLink
@@ -217,13 +302,17 @@ export default function AdminShell({
 
         {/* User card */}
         <div className="border-t border-white/10 p-3">
-          <div className={`flex items-center rounded-lg py-2 ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}>
+          <div
+            className={`flex items-center rounded-lg py-2 ${collapsed ? "justify-center px-0" : "gap-3 px-3"}`}
+          >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-bold text-white">
               {user.charAt(0).toUpperCase()}
             </span>
             {!collapsed ? (
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{user}</p>
+                <p className="truncate text-sm font-semibold text-white">
+                  {user}
+                </p>
                 <p className="text-[11px] text-cream/50">{roleLabel}</p>
               </div>
             ) : null}
@@ -261,7 +350,8 @@ export default function AdminShell({
             ))}
           </nav>
           <span className="hidden items-center gap-2 text-sm text-gray-500 sm:flex">
-            Signed in as <span className="font-semibold text-gray-800">{user}</span>
+            Signed in as{" "}
+            <span className="font-semibold text-gray-800">{user}</span>
             <span className="rounded-full bg-cream px-2 py-0.5 text-[11px] font-semibold text-brand">
               {roleLabel}
             </span>
@@ -381,7 +471,13 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
       return (
         <svg {...p}>
           <path d="M20.6 13.4 12 22l-8-8 8.6-8.6a2 2 0 0 1 1.4-.6H20a2 2 0 0 1 2 2v6a2 2 0 0 1-.6 1.4Z" />
-          <circle cx="16.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+          <circle
+            cx="16.5"
+            cy="7.5"
+            r="1.2"
+            fill="currentColor"
+            stroke="none"
+          />
         </svg>
       );
     case "map":
@@ -453,7 +549,13 @@ function Icon({ name, className }: { name: IconName; className?: string }) {
         <svg {...p}>
           <path d="M3 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v0H5a2 2 0 0 0-2 2Z" />
           <path d="M3 8h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-          <circle cx="16.5" cy="13.5" r="1.2" fill="currentColor" stroke="none" />
+          <circle
+            cx="16.5"
+            cy="13.5"
+            r="1.2"
+            fill="currentColor"
+            stroke="none"
+          />
         </svg>
       );
     case "external":

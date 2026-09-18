@@ -1,4 +1,5 @@
 export const NAV_CATEGORIES = [
+  { label: "Restaurants", href: "/restaurants" },
   { label: "ALL CATEGORIES", href: "/categories", icon: "grid" },
   { label: "SNACKS", href: "/category/snacks" },
   { label: "SWEETS", href: "/category/sweets" },
@@ -245,6 +246,13 @@ export const FOOTER_LEGAL: FooterLink[] = [
 export const CONTACT = {
   email: "odiakitchen@gmail.com",
   phone: "(+91) 6370649364",
+};
+
+// Mobile app store links. Replace the placeholders with your real listing URLs
+// once the apps are published; leave a field empty ("") to hide that badge.
+export const APP_STORES = {
+  playStore: "https://play.google.com/store/apps/details?id=com.odiakitchen.app",
+  appStore: "https://apps.apple.com/app/odia-kitchen/id000000000",
 };
 
 const unsplash = (id: string, w: number) =>

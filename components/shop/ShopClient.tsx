@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import ProductCard from "@/components/home/ProductCard";
+import { isSoldOut } from "@/data/products";
 import type { Product } from "@/data/products";
 import type { Category } from "@/data/site";
 import { categorySlug } from "@/data/site";
@@ -22,6 +23,10 @@ export default function ShopClient({
   products: Product[];
   categories: Category[];
 }) {
+  const [diet, setDiet] = useState("all");
+  const [inStock, setInStock] = useState(false);
+  const [maxPrice, setMaxPrice] = useState("");
+  const [page, setPage] = useState(1);
   const [query, setQuery] = useState("");
   const [activeCat, setActiveCat] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("featured");
@@ -30,8 +35,21 @@ export default function ShopClient({
     const q = query.trim().toLowerCase();
     let list = products.filter((p) => {
       const matchesCat = activeCat === "all" || p.category === activeCat;
-      const matchesQuery = !q || p.name.toLowerCase().includes(q);
-      return matchesCat && matchesQuery;
+      const matchesQuery =
+        !q ||
+        [p.name, p.description, p.category]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q);
+      return (
+        matchesCat &&
+        matchesQuery &&
+        (diet === "all" ||
+          (diet === "veg" ? p.veg !== false : p.veg === false)) &&
+        (!inStock || !isSoldOut(p)) &&
+        (!maxPrice || p.price <= Number(maxPrice))
+      );
     });
 
     list = [...list];
@@ -40,7 +58,7 @@ export default function ShopClient({
     else if (sort === "rating") list.sort((a, b) => b.rating - a.rating);
 
     return list;
-  }, [products, query, activeCat, sort]);
+  }, [products, query, activeCat, sort, diet, inStock, maxPrice]);
 
   return (
     <div>
@@ -51,7 +69,10 @@ export default function ShopClient({
           <input
             type="search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setPage(1);
+            }}
             placeholder="Search products..."
             className="w-full bg-transparent text-sm outline-none placeholder:text-gray-400"
             aria-label="Search products"
@@ -74,15 +95,69 @@ export default function ShopClient({
         </label>
       </div>
 
+      <div className="mb-5 flex flex-wrap items-center gap-4 text-sm">
+        <label>
+          Diet{" "}
+          <select
+            className="rounded border border-black/10 bg-white p-2"
+            value={diet}
+            onChange={(e) => {
+              setDiet(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="all">All food</option>
+            <option value="veg">Vegetarian</option>
+            <option value="nonveg">Non-vegetarian</option>
+          </select>
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={inStock}
+            onChange={(e) => {
+              setInStock(e.target.checked);
+              setPage(1);
+            }}
+          />{" "}
+          In stock only
+        </label>
+        <label>
+          Max price ₹{" "}
+          <input
+            className="w-24 rounded border border-black/10 bg-white p-2"
+            type="number"
+            min="0"
+            value={maxPrice}
+            onChange={(e) => {
+              setMaxPrice(e.target.value);
+              setPage(1);
+            }}
+          />
+        </label>
+      </div>
       {/* Category chips */}
       <div className="mb-8 flex flex-wrap gap-2">
-        <Chip active={activeCat === "all"} onClick={() => setActiveCat("all")}>
+        <Chip
+          active={activeCat === "all"}
+          onClick={() => {
+            setActiveCat("all");
+            setPage(1);
+          }}
+        >
           All
         </Chip>
         {categories.map((c) => {
           const slug = categorySlug(c);
           return (
-            <Chip key={slug} active={activeCat === slug} onClick={() => setActiveCat(slug)}>
+            <Chip
+              key={slug}
+              active={activeCat === slug}
+              onClick={() => {
+                setActiveCat(slug);
+                setPage(1);
+              }}
+            >
               {c.label}
             </Chip>
           );
@@ -100,11 +175,29 @@ export default function ShopClient({
         </p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {filtered.map((product, index) => (
-            <ProductCard key={product.id} product={product} eager={index === 0} />
+          {filtered.slice((page - 1) * 24, page * 24).map((product, index) => (
+            <ProductCard
+              key={product.id}
+              product={product}
+              eager={index === 0}
+            />
           ))}
         </div>
       )}
+      {filtered.length > 24 ? (
+        <div className="mt-6 flex items-center gap-4 text-sm">
+          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+            Previous
+          </button>
+          <span>Page {page}</span>
+          <button
+            disabled={page * 24 >= filtered.length}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -135,7 +228,13 @@ function Chip({
 
 function SearchIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="m21 21-4.3-4.3" strokeLinecap="round" />
     </svg>

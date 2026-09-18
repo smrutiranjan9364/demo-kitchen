@@ -13,3 +13,8 @@ next-env.d.ts
 # Admin-uploaded images (keep the folder, ignore its contents)
 /public/uploads/*
 !/public/uploads/.gitkeep
+
+# Isolated browser-test build output
+/.next-platform-test/
+
+/.next-platform-build/

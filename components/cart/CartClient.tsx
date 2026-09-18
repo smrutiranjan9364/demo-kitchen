@@ -1,5 +1,6 @@
 "use client";
 
+import { cartKey } from "@/lib/menu";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/components/cart/CartContext";
@@ -13,7 +14,7 @@ export default function CartClient({
   rates: DeliveryRates;
   deliveryPincodes: string;
 }) {
-  const { lines: items, setQty, remove: removeItem } = useCart();
+  const { lines: items, setQty, remove: removeItem, clear } = useCart();
   const { subtotal, delivery, total } = priceOrder(items, rates);
 
   if (items.length === 0) {
@@ -42,12 +43,18 @@ export default function CartClient({
       <div className="space-y-4 lg:col-span-2">
         {items.map((item) => (
           <div
-            key={item.id}
+            key={cartKey(item)}
             className="flex gap-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-black/5"
           >
             <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-cream-soft">
               {item.image ? (
-                <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  sizes="96px"
+                  className="object-cover"
+                />
               ) : null}
             </div>
 
@@ -55,10 +62,26 @@ export default function CartClient({
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="font-medium text-gray-900">{item.name}</h3>
-                  <p className="mt-0.5 text-sm text-gray-500">₹{item.price.toFixed(2)}</p>
+                  <p className="mt-0.5 text-sm text-gray-500">
+                    ₹{item.price.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {[
+                      item.variants?.find((v) => v.id === item.variantId)
+                        ?.label,
+                      ...(item.addons ?? [])
+                        .filter((a) => item.addonIds?.includes(a.id))
+                        .map((a) => a.label),
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                  {item.instructions ? (
+                    <p className="text-xs text-gray-500">{item.instructions}</p>
+                  ) : null}
                 </div>
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => removeItem(cartKey(item))}
                   aria-label={`Remove ${item.name}`}
                   className="text-gray-400 transition hover:text-brand"
                 >
@@ -76,9 +99,12 @@ export default function CartClient({
                   >
                     −
                   </button>
-                  <span className="w-8 text-center text-sm font-medium">{item.qty}</span>
+                  <span className="w-8 text-center text-sm font-medium">
+                    {item.qty}
+                  </span>
                   <button
                     onClick={() => setQty(item, item.qty + 1)}
+                    disabled={item.qty >= Math.min(50, item.stock ?? 50)}
                     aria-label="Increase quantity"
                     className="px-3 py-1.5 text-brand hover:bg-cream-soft"
                   >
@@ -93,6 +119,15 @@ export default function CartClient({
           </div>
         ))}
 
+        <button
+          type="button"
+          className="mr-4 text-sm text-red-700"
+          onClick={() => {
+            if (confirm("Clear your cart?")) clear();
+          }}
+        >
+          Clear cart
+        </button>
         <Link
           href="/categories"
           className="inline-block text-sm font-medium text-brand hover:text-brand-light"
@@ -107,7 +142,9 @@ export default function CartClient({
         <dl className="mt-4 space-y-3 text-sm">
           <div className="flex justify-between">
             <dt className="text-gray-500">Subtotal</dt>
-            <dd className="font-medium text-gray-900">₹{subtotal.toFixed(2)}</dd>
+            <dd className="font-medium text-gray-900">
+              ₹{subtotal.toFixed(2)}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-gray-500">Delivery</dt>
@@ -117,7 +154,8 @@ export default function CartClient({
           </div>
           {delivery > 0 ? (
             <p className="text-xs text-gray-400">
-              Add ₹{(rates.freeDeliveryOver - subtotal).toFixed(2)} more for free delivery.
+              Add ₹{(rates.freeDeliveryOver - subtotal).toFixed(2)} more for
+              free delivery.
             </p>
           ) : null}
           <div className="flex justify-between border-t border-black/10 pt-3 text-base">
@@ -126,7 +164,10 @@ export default function CartClient({
           </div>
         </dl>
 
-        <PincodeCheck prefixes={deliveryPincodes} className="mt-4 border-t border-black/10 pt-4" />
+        {items.every(item=>(item.restaurantId ?? "odia-kitchen") === "odia-kitchen") ? <PincodeCheck
+          prefixes={deliveryPincodes}
+          className="mt-4 border-t border-black/10 pt-4"
+        /> : null}
 
         <Link
           href="/checkout"

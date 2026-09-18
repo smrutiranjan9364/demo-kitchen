@@ -1,6 +1,15 @@
 // Bump this version when changing the offline shell or its icons.
 const CACHE_PREFIX = "rosys-kitchen-";
-const CACHE_NAME = `${CACHE_PREFIX}v2`;
+const CACHE_NAME = `${CACHE_PREFIX}v4`;
+
+// In local development Next.js serves client chunks under /_next/static/ at
+// URLs whose contents change on every edit/HMR update (they are not immutably
+// content-hashed as in a production build). Caching them cache-first would
+// replay a stale client bundle against fresh server HTML and cause hydration
+// mismatches, so the worker steps aside for static assets on localhost.
+const IS_DEV =
+  self.location.hostname === "localhost" ||
+  self.location.hostname === "127.0.0.1";
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [
   OFFLINE_URL,
@@ -66,7 +75,7 @@ self.addEventListener("fetch", (event) => {
   ) return;
 
   if (request.mode === "navigate") {
-    const privateRoute = /^\/(?:backend|cart|checkout|auth|login|register|search)(?:\/|$)/.test(url.pathname);
+    const privateRoute = /^\/(?:backend|account|partner|cart|checkout|auth|login|register|search)(?:\/|$)/.test(url.pathname);
     const publicDocument = !privateRoute && !url.search;
 
     // Refresh documents on every navigation. Never retain private pages,
@@ -89,7 +98,7 @@ self.addEventListener("fetch", (event) => {
 
   // Only immutable framework assets and the versioned offline shell use
   // cache-first. Image optimization and SEO endpoints keep their HTTP policy.
-  const immutableAsset = url.pathname.startsWith("/_next/static/");
+  const immutableAsset = !IS_DEV && url.pathname.startsWith("/_next/static/");
   const shellAsset = !url.search && PRECACHE_URLS.includes(url.pathname);
   if (!immutableAsset && !shellAsset) return;
 

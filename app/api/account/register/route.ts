@@ -1,3 +1,10 @@
+import {
+  api,
+  body as readBody,
+  sameOrigin,
+  rateLimit,
+  ApiError,
+} from "@/lib/api";
 import { hashPassword, setCustomerSession } from "@/lib/auth";
 import { createCustomer } from "@/lib/store";
 import { isIndianMobile } from "@/lib/orders";
@@ -13,27 +20,50 @@ function bad(error: string, status = 400) {
 
 // Public: creates a customer account and signs them in.
 export async function POST(request: Request) {
-  let body: Record<string, unknown>;
-  try {
-    body = await request.json();
-  } catch {
-    return bad("Invalid request");
-  }
+  return api(async () => {
+    sameOrigin(request);
+    await rateLimit("register:global", 100, 60);
+    let body: Record<string, unknown>;
+    try {
+      body = await readBody(request);
+    } catch {
+      return bad("Invalid request");
+    }
 
-  const name = text(body.name, 100);
-  const phone = text(body.phone, 20);
-  const email = text(body.email, 200)?.toLowerCase() ?? null;
-  const password = typeof body.password === "string" ? body.password : "";
+    const name = text(body.name, 100);
+    const phone = text(body.phone, 20);
+    const email = text(body.email, 200)?.toLowerCase() ?? null;
+    const password = typeof body.password === "string" ? body.password : "";
+    if (typeof password !== "string" || password.length > 128)
+      throw new ApiError("Invalid password.");
+    await rateLimit(`login:${email}`, 10);
 
-  if (!name) return bad("Please enter your name.");
-  if (!phone || !isIndianMobile(phone)) return bad("Please enter a valid Indian mobile number.");
-  if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return bad("Please enter a valid email address.");
-  if (password.length < 8) return bad("Please choose a password of at least 8 characters.");
+    if (!name) return bad("Please enter your name.");
+    if (!phone || !isIndianMobile(phone))
+      return bad("Please enter a valid Indian mobile number.");
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
+      return bad("Please enter a valid email address.");
+    if (password.length < 8)
+      return bad("Please choose a password of at least 8 characters.");
 
-  const { hash, salt } = hashPassword(password);
-  const customer = await createCustomer({ name, phone, email, passwordHash: hash, salt });
-  if (!customer) return bad("An account with this email already exists. Try logging in.", 409);
+    const { hash, salt } = hashPassword(password);
+    const customer = await createCustomer({
+      name,
+      phone,
+      email,
+      passwordHash: hash,
+      salt,
+    });
+    if (!customer)
+      return bad(
+        "An account with this email already exists. Try logging in.",
+        409,
+      );
 
-  await setCustomerSession(customer.id);
-  return Response.json({ ok: true, customer: { name: customer.name, email: customer.email } }, { status: 201 });
+    await setCustomerSession(customer.id);
+    return Response.json(
+      { ok: true, customer: { name: customer.name, email: customer.email } },
+      { status: 201 },
+    );
+  });
 }

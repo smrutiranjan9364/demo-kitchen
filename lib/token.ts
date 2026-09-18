@@ -10,7 +10,7 @@ export type Role = "super" | "admin";
 // admin session. Every reader checks `k` before anything else.
 export type Payload =
   | { k: "admin"; u: string; r: Role; t: number }
-  | { k: "customer"; u: string; t: number };
+  | { k: "customer"; u: string; t: number; v?: number };
 
 export const ADMIN_MAX_AGE = 60 * 60 * 8; // 8 hours
 export const CUSTOMER_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
@@ -24,15 +24,20 @@ export function signToken(payload: Payload, secret: string): string {
   return `${body}.${hmac(body, secret)}`;
 }
 
-function readToken(token: string | null | undefined, secret: string): Payload | null {
-  if (!token) return null;
+function readToken(
+  token: string | null | undefined,
+  secret: string,
+): Payload | null {
+  if (!token || token.split(".").length !== 2) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
   const a = Buffer.from(sig);
   const b = Buffer.from(hmac(body, secret));
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   try {
-    const p = JSON.parse(Buffer.from(body, "base64url").toString()) as Partial<Payload>;
+    const p = JSON.parse(
+      Buffer.from(body, "base64url").toString(),
+    ) as Partial<Payload>;
     if (typeof p.u !== "string" || typeof p.t !== "number") return null;
     if (p.k !== "admin" && p.k !== "customer") return null;
     return p as Payload;
@@ -41,7 +46,10 @@ function readToken(token: string | null | undefined, secret: string): Payload | 
   }
 }
 
-const fresh = (issuedAt: number, maxAge: number) => Date.now() - issuedAt <= maxAge * 1000;
+const fresh = (issuedAt: number, maxAge: number) =>
+  Number.isFinite(issuedAt) &&
+  issuedAt <= Date.now() + 30_000 &&
+  Date.now() - issuedAt <= maxAge * 1000;
 
 export function verifyAdminToken(
   token: string | null | undefined,
